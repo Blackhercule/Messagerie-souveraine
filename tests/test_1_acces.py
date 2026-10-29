@@ -46,7 +46,7 @@ def test_federation_desactivee():
 
 def test_second_facteur_exige():
     """Le bon mot de passe ne suffit pas : la page du code TOTP s'affiche et rien n'est délivré."""
-    nom, mot_de_passe, _ = identifiants("moussa")
+    nom, mot_de_passe, _ = identifiants("fatou")
     n = Navigateur()
     with pytest.raises(EchecConnexion) as e:
         n.connexion_matrix(nom, mot_de_passe, code_force="000000")

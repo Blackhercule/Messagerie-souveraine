@@ -67,7 +67,7 @@ def test_revocation_immediate_sur_tous_les_appareils(console, awa):
     page = console.s.get(f"{ADRESSE}/console/agents").text
     debut = time.monotonic()
     rep = console.poster_console(f"/console/agents/{identifiant}/revoquer", page, {"motif": "départ"})
-    assert rep.status_code == 200 and "est révoqué" in rep.text, rep.text[:800]
+    assert rep.status_code == 200 and "est révoqué : 2 appareil(s) déconnecté(s)" in rep.text, rep.text[:800]
 
     # Immédiatement : plus aucun appareil ne fonctionne…
     assert not jeton_valide(telephone)
@@ -88,6 +88,7 @@ def test_bouton_urgence_telephone_perdu(console):
     page = console.s.get(f"{ADRESSE}/console/agents").text
     rep = console.poster_console(f"/console/agents/{identifiant}/urgence", page, {})
     assert rep.status_code == 200 and "Appareils coupés" in rep.text
+    assert "2 appareil(s) déconnecté(s)" in rep.text
     nouveau_provisoire = re.search(r'<code class="secret">([^<]+)</code>', rep.text).group(1)
 
     assert not jeton_valide(telephone) and not jeton_valide(ordinateur)
