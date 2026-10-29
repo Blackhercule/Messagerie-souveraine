@@ -192,7 +192,7 @@ def revoquer(identifiant):
         resultat = ops().revoquer(session["admin"]["nom"], identifiant, request.form.get("motif") or "départ")
         flash(f"{identifiant} est révoqué : {resultat['appareils']} appareil(s) déconnecté(s) "
               f"en {resultat['duree_ms']} ms.", "succes")
-    except (ErreurIdentite, ErreurMessagerie) as e:
+    except (ErreurOperation, ErreurIdentite, ErreurMessagerie) as e:
         flash(f"Échec de la révocation : {e}", "erreur")
     return redirect(url_for("console.agents"))
 
@@ -202,7 +202,7 @@ def revoquer(identifiant):
 def urgence(identifiant):
     try:
         appareils, provisoire = ops().urgence(session["admin"]["nom"], identifiant)
-    except (ErreurIdentite, ErreurMessagerie) as e:
+    except (ErreurOperation, ErreurIdentite, ErreurMessagerie) as e:
         flash(f"Échec : {e}", "erreur")
         return redirect(url_for("console.agents"))
     return render_template("identifiants.html", titre="Appareils coupés", identifiant=identifiant,

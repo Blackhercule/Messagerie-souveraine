@@ -52,7 +52,7 @@ class Journal:
         except (OSError, ValueError):
             return []
 
-    def tout(self, evenements_keycloak: list, agents: set) -> list:
+    def tout(self, evenements_keycloak: list, non_enroles: set) -> list:
         """Fusionne les trois sources, du plus récent au plus ancien."""
         lignes = []
         for e in self._lire(self.fichier_console):
@@ -70,7 +70,7 @@ class Journal:
                 lignes.append({"date": date, "source": "identite", "type": "connexion_refusee", "gravite": gravite,
                                "auteur": nom, "cible": e.get("ipAddress", ""), "libelle": libelle,
                                "detail": e.get("error", "")})
-            elif e.get("type") == "LOGIN" and e.get("clientId") == "synapse" and nom and nom not in agents:
+            elif e.get("type") == "LOGIN" and e.get("clientId") == "synapse" and nom in non_enroles:
                 # Identité valide, mais compte hors du groupe « agents » : Synapse le rejette.
                 lignes.append({"date": date, "source": "identite", "type": "non_enrole_rejete", "gravite": "intrus",
                                "auteur": nom, "cible": e.get("ipAddress", ""),

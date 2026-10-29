@@ -67,12 +67,19 @@ class Operations:
             })
         return sorted(resultat, key=lambda a: (not a["actif"], a["nom_famille"], a["prenom"]))
 
-    def noms_agents(self) -> set:
-        return {u["username"] for u in self.identite.membres(self.r.groupe_agents)}
+    def noms_non_enroles(self) -> set:
+        """Comptes actifs dans l'annuaire mais absents du groupe « agents » (ex. visiteur.externe).
+
+        Un agent révoqué est désactivé : il n'est pas dans cette liste, ses anciennes
+        connexions (légitimes à l'époque) ne sont donc pas signalées comme intrusions."""
+        agents = {u["username"] for u in self.identite.membres(self.r.groupe_agents)}
+        return {u["username"] for u in self.identite.utilisateurs()
+                if u.get("enabled") and u["username"] not in agents
+                and not u["username"].startswith("service-account-")}
 
     def journal_complet(self) -> list:
         evenements = self.identite.evenements(["LOGIN", "LOGIN_ERROR"])
-        return self.journal.tout(evenements, self.noms_agents())
+        return self.journal.tout(evenements, self.noms_non_enroles())
 
     # ------------------------------------------------------------------ enrôlement
     def enroler(self, auteur: str, prenom: str, nom: str, ministere: str, fonction: str,
@@ -93,8 +100,12 @@ class Operations:
     # ------------------------------------------------------------------ révocation
     def revoquer(self, auteur: str, identifiant: str, motif: str) -> dict:
         """Départ de l'agent : accès coupé partout, immédiatement et définitivement."""
+        if identifiant == auteur:
+            raise ErreurOperation("Un administrateur ne peut pas révoquer son propre compte.")
         debut = time.monotonic()
         u = self.identite.exiger_utilisateur(identifiant)
+        mxid = self.r.identifiant_matrix(identifiant)
+        appareils = len(self.messagerie.appareils(mxid))  # compté avant la coupure
         # 1. Identité : compte désactivé, sessions fermées, retiré des groupes.
         self.identite.modifier(u, enabled=False)
         self.identite.fermer_sessions(u)
@@ -103,8 +114,6 @@ class Operations:
                 self.identite.retirer_du_groupe(u, groupe)
         self.synchroniser_habilitations()
         # 2. Messagerie : tous les appareils déconnectés, retiré de tous les salons.
-        mxid = self.r.identifiant_matrix(identifiant)
-        appareils = len(self.messagerie.appareils(mxid))
         desactive = self.messagerie.desactiver(mxid)
         duree = int((time.monotonic() - debut) * 1000)
         self.journal.noter("revocation", "critique", auteur, identifiant,
@@ -114,13 +123,19 @@ class Operations:
 
     def urgence(self, auteur: str, identifiant: str) -> tuple:
         """Téléphone perdu ou volé : tout est coupé, l'agent se réenrôle sur un nouvel appareil."""
+        if identifiant == auteur:
+            raise ErreurOperation("Demandez à un autre administrateur de couper vos appareils.")
         u = self.identite.exiger_utilisateur(identifiant)
+        mxid = self.r.identifiant_matrix(identifiant)
+        appareils = len(self.messagerie.appareils(mxid))  # compté avant la coupure
+        # Fermer les sessions Keycloak déconnecte déjà la messagerie (déconnexion « back-channel ») ;
+        # on supprime ensuite directement tout appareil restant, par sécurité.
         self.identite.fermer_sessions(u)
         facteurs = self.identite.supprimer_second_facteur(u)
         provisoire = mot_de_passe_provisoire()
         self.identite.nouveau_mot_de_passe_provisoire(u, provisoire)
         self.identite.modifier(u, requiredActions=["UPDATE_PASSWORD", "CONFIGURE_TOTP"])
-        appareils = self.messagerie.deconnecter_appareils(self.r.identifiant_matrix(identifiant))
+        self.messagerie.deconnecter_appareils(mxid)
         self.journal.noter("urgence", "critique", auteur, identifiant,
                            f"Bouton d'urgence : {appareils} appareil(s) déconnecté(s), "
                            f"{facteurs} second facteur supprimé, nouveau mot de passe provisoire")

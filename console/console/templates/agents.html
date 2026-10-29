@@ -37,7 +37,7 @@
         {% else %}—{% endif %}
       </td>
       <td class="actions">
-        {% if a.actif %}
+        {% if a.actif and a.nom != admin.nom %}
         <details>
           <summary>Téléphone perdu</summary>
           <form method="post" action="{{ url_for('console.urgence', identifiant=a.nom) }}">
