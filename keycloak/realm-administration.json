@@ -1,0 +1,428 @@
+{
+  "realm": "administration",
+  "displayName": "Messagerie souveraine de l'administration",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "fr"
+  ],
+  "defaultLocale": "fr",
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "passwordPolicy": "length(12) and notUsername",
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyCodeReusable": false,
+  "otpSupportedApplications": [
+    "totpAppFreeOTPName",
+    "totpAppGoogleName",
+    "totpAppMicrosoftAuthenticatorName"
+  ],
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 36000,
+  "accessTokenLifespan": 300,
+  "eventsEnabled": true,
+  "eventsExpiration": 2592000,
+  "eventsListeners": [
+    "jboss-logging"
+  ],
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR",
+    "LOGOUT",
+    "LOGOUT_ERROR",
+    "CODE_TO_TOKEN_ERROR",
+    "UPDATE_TOTP",
+    "REMOVE_TOTP",
+    "UPDATE_PASSWORD",
+    "UPDATE_CREDENTIAL",
+    "REMOVE_CREDENTIAL"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "administrateur-securite",
+        "description": "Accès à la console de sécurité : enrôlement, révocation, journal"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "agents",
+      "path": "/agents",
+      "attributes": {},
+      "realmRoles": [],
+      "clientRoles": {},
+      "subGroups": []
+    },
+    {
+      "name": "habilites-confidentiel",
+      "path": "/habilites-confidentiel",
+      "attributes": {},
+      "realmRoles": [],
+      "clientRoles": {},
+      "subGroups": []
+    }
+  ],
+  "scopeMappings": [
+    {"client": "console-securite", "roles": ["administrateur-securite"]}
+  ],
+  "clientScopeMappings": {
+    "realm-management": [
+      {"client": "console-securite",
+       "roles": ["manage-users", "view-users", "query-users", "query-groups", "view-events"]}
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "synapse",
+      "fullScopeAllowed": false,
+      "name": "Messagerie (serveur Synapse)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${SECRET_OIDC_SYNAPSE}",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "${ADRESSE_PUBLIQUE}/_synapse/client/oidc/callback"
+      ],
+      "webOrigins": [
+        "${ADRESSE_PUBLIQUE}"
+      ],
+      "frontchannelLogout": false,
+      "attributes": {
+        "backchannel.logout.url": "http://synapse:8008/_synapse/client/oidc/backchannel_logout",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "true",
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "profile",
+        "roles",
+        "basic"
+      ],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "groupes",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "console-securite",
+      "fullScopeAllowed": false,
+      "name": "Console de sécurité",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${SECRET_OIDC_CONSOLE}",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "redirectUris": [
+        "${ADRESSE_PUBLIQUE}/console/connexion/retour"
+      ],
+      "webOrigins": [
+        "${ADRESSE_PUBLIQUE}"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${ADRESSE_PUBLIQUE}/console/"
+      },
+      "defaultClientScopes": [
+        "profile",
+        "roles",
+        "basic"
+      ],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "roles-du-royaume",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-console-securite",
+      "enabled": true,
+      "serviceAccountClientId": "console-securite",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "query-groups",
+          "view-events"
+        ]
+      }
+    },
+    {
+      "username": "admin.securite",
+      "firstName": "Aminata",
+      "lastName": "Kaboré",
+      "email": "admin.securite@messagerie.local",
+      "emailVerified": true,
+      "enabled": true,
+      "attributes": {
+        "ministere": [
+          "DGTD – Transformation digitale"
+        ],
+        "fonction": [
+          "Administratrice sécurité (fictive)"
+        ]
+      },
+      "groups": [
+        "/agents"
+      ],
+      "realmRoles": [
+        "administrateur-securite",
+        "default-roles-administration"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Demo-Admin-2026",
+          "temporary": false
+        },
+        {
+          "type": "otp",
+          "userLabel": "Démo",
+          "secretData": "{\"value\":\"DemoAdminSecu2026!!\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
+    },
+    {
+      "username": "awa.sawadogo",
+      "firstName": "Awa",
+      "lastName": "Sawadogo",
+      "email": "awa.sawadogo@messagerie.local",
+      "emailVerified": true,
+      "enabled": true,
+      "attributes": {
+        "ministere": [
+          "Ministère de la Santé"
+        ],
+        "fonction": [
+          "Directrice des ressources humaines (fictive)"
+        ]
+      },
+      "groups": [
+        "/agents",
+        "/habilites-confidentiel"
+      ],
+      "realmRoles": [
+        "default-roles-administration"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Demo-Awa-2026",
+          "temporary": false
+        },
+        {
+          "type": "otp",
+          "userLabel": "Démo",
+          "secretData": "{\"value\":\"DemoAwaSawadogo2026\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
+    },
+    {
+      "username": "issouf.ouedraogo",
+      "firstName": "Issouf",
+      "lastName": "Ouédraogo",
+      "email": "issouf.ouedraogo@messagerie.local",
+      "emailVerified": true,
+      "enabled": true,
+      "attributes": {
+        "ministere": [
+          "Ministère de l'Économie et des Finances"
+        ],
+        "fonction": [
+          "Chef du service budget (fictif)"
+        ]
+      },
+      "groups": [
+        "/agents",
+        "/habilites-confidentiel"
+      ],
+      "realmRoles": [
+        "default-roles-administration"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Demo-Issouf-2026",
+          "temporary": false
+        },
+        {
+          "type": "otp",
+          "userLabel": "Démo",
+          "secretData": "{\"value\":\"DemoIssoufOuedrao26\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
+    },
+    {
+      "username": "fatou.zongo",
+      "firstName": "Fatou",
+      "lastName": "Zongo",
+      "email": "fatou.zongo@messagerie.local",
+      "emailVerified": true,
+      "enabled": true,
+      "attributes": {
+        "ministere": [
+          "Ministère de l'Éducation nationale"
+        ],
+        "fonction": [
+          "Secrétaire générale adjointe (fictive)"
+        ]
+      },
+      "groups": [
+        "/agents"
+      ],
+      "realmRoles": [
+        "default-roles-administration"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Demo-Fatou-2026",
+          "temporary": false
+        },
+        {
+          "type": "otp",
+          "userLabel": "Démo",
+          "secretData": "{\"value\":\"DemoFatouZongo2026!\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
+    },
+    {
+      "username": "moussa.sanou",
+      "firstName": "Moussa",
+      "lastName": "Sanou",
+      "email": "moussa.sanou@messagerie.local",
+      "emailVerified": true,
+      "enabled": true,
+      "attributes": {
+        "ministere": [
+          "Ministère de la Santé"
+        ],
+        "fonction": [
+          "Chargé de mission (fictif)"
+        ]
+      },
+      "groups": [
+        "/agents"
+      ],
+      "realmRoles": [
+        "default-roles-administration"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Demo-Moussa-2026",
+          "temporary": false
+        },
+        {
+          "type": "otp",
+          "userLabel": "Démo",
+          "secretData": "{\"value\":\"DemoMoussaSanou2026\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
+    },
+    {
+      "username": "visiteur.externe",
+      "firstName": "Visiteur",
+      "lastName": "Externe",
+      "email": "visiteur.externe@messagerie.local",
+      "emailVerified": true,
+      "enabled": true,
+      "attributes": {
+        "ministere": [
+          "Aucun"
+        ],
+        "fonction": [
+          "Compte NON enrôlé dans la messagerie (test intrus)"
+        ]
+      },
+      "groups": [],
+      "realmRoles": [
+        "default-roles-administration"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Demo-Visiteur-2026",
+          "temporary": false
+        },
+        {
+          "type": "otp",
+          "userLabel": "Démo",
+          "secretData": "{\"value\":\"DemoVisiteurExt2026\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
+    }
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\": [{\"name\": \"username\", \"displayName\": \"${username}\", \"validations\": {\"length\": {\"min\": 3, \"max\": 255}, \"username-prohibited-characters\": {}, \"up-username-not-idn-homograph\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false}, {\"name\": \"email\", \"displayName\": \"${email}\", \"validations\": {\"email\": {}, \"length\": {\"max\": 255}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false}, {\"name\": \"firstName\", \"displayName\": \"${firstName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false}, {\"name\": \"lastName\", \"displayName\": \"${lastName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false}, {\"name\": \"ministere\", \"displayName\": \"Ministère\", \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false}, {\"name\": \"fonction\", \"displayName\": \"Fonction\", \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false}], \"groups\": [{\"name\": \"user-metadata\", \"displayHeader\": \"User metadata\", \"displayDescription\": \"Attributes, which refer to user metadata\"}]}"
+          ]
+        }
+      }
+    ]
+  }
+}
