@@ -1,0 +1,12 @@
+# Secrets et certificats propres à chaque installation : jamais dans le dépôt.
+.env
+ca-messagerie.crt
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Node (test de chiffrement de bout en bout)
+node_modules/
