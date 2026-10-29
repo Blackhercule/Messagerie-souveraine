@@ -7,6 +7,8 @@
 #
 # Sous Windows : lancer ce script depuis « Git Bash », avec Docker Desktop démarré.
 set -euo pipefail
+# Git Bash (Windows) : ne pas transformer les chemins des conteneurs (« caddy:/data/… »).
+export MSYS_NO_PATHCONV=1
 cd "$(dirname "$0")"
 
 if [ "${1:-}" = "--reinitialiser" ]; then
@@ -69,13 +71,14 @@ done
 cat <<EOF
 
   Messagerie (navigateur)   : $ADRESSE_PUBLIQUE
-  Application mobile        : Element, serveur « $ADRESSE_PUBLIQUE »
+  Téléphone                 : application Element (classique), serveur « $ADRESSE_PUBLIQUE »,
+                              ou le navigateur du téléphone
   Console de sécurité       : $ADRESSE_PUBLIQUE/console
   Administration Keycloak   : http://127.0.0.1:8081/auth/admin  (cet ordinateur seulement)
                               identifiant « admin », mot de passe dans .env (MOT_DE_PASSE_ADMIN_KEYCLOAK)
 
   Comptes de démonstration (fictifs) : docs/comptes-demo.md
-  Code TOTP d'un compte de démo     : python3 outils/code_totp.py awa.sawadogo
+  Code TOTP d'un compte de démo     : python outils/code_totp.py awa.sawadogo  (ou python3)
 
   Certificat : le HTTPS utilise une autorité de certification INTERNE (aucun service extérieur).
   Pour que les navigateurs et téléphones lui fassent confiance, installez ca-messagerie.crt.

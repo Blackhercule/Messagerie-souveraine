@@ -23,7 +23,7 @@ avec une application TOTP (FreeOTP, Aegis, Google Authenticator…), ou lancer
 
 1. `./installer.sh 192.168.x.x` (adresse IP du PC sur le Wi-Fi) ; installer `ca-messagerie.crt`
    sur le PC et sur le téléphone de démonstration.
-2. Ouvrir trois fenêtres : **Awa** (navigateur), **Issouf** (téléphone avec Element, serveur
+2. Ouvrir trois fenêtres : **Awa** (navigateur), **Issouf** (téléphone : application Element classique ou navigateur, serveur
    `https://192.168.x.x:8443`), **Moussa** (fenêtre de navigation privée).
 3. Créer avec Awa un salon « Cellule budget 2027 », inviter Issouf, Fatou et Moussa.
 4. Ouvrir la console de sécurité (`/console`, compte `admin.securite`).

@@ -51,7 +51,8 @@ Le script crée `.env` avec des secrets aléatoires, construit et démarre tous 
 puis affiche les adresses. Il exporte aussi `ca-messagerie.crt`, l'autorité de certification
 interne, à installer sur les navigateurs et téléphones de démonstration.
 
-- Messagerie : `https://localhost:8443` (application mobile Element : même adresse de serveur)
+- Messagerie : `https://localhost:8443` ; sur téléphone, l'application **Element (classique)** avec
+  cette adresse de serveur, ou simplement le navigateur du téléphone
 - Console de sécurité : `https://localhost:8443/console` (compte `admin.securite`)
 - Comptes fictifs, codes TOTP et scénario de démonstration : [docs/comptes-demo.md](docs/comptes-demo.md)
 

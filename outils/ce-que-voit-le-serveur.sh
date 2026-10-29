@@ -5,6 +5,8 @@
 #   ./outils/ce-que-voit-le-serveur.sh                 5 derniers messages
 #   ./outils/ce-que-voit-le-serveur.sh "jeudi"         cherche un mot dans TOUTE la base
 set -euo pipefail
+# Git Bash (Windows) : ne pas transformer les chemins des conteneurs (« caddy:/data/… »).
+export MSYS_NO_PATHCONV=1
 cd "$(dirname "$0")/.."
 psql() { docker compose exec -T postgres psql -U synapse -d synapse -At "$@"; }
 
