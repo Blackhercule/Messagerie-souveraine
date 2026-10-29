@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block titre %}Agents{% endblock %}
+{% block contenu %}
+<div class="entete-page">
+  <h1>Agents</h1>
+  <a class="bouton" href="{{ url_for('console.enroler') }}">+ Enrôler un agent</a>
+</div>
+
+<table class="agents">
+  <thead>
+    <tr><th>Agent</th><th>Ministère / fonction</th><th>État</th><th>Habilitation</th><th>Actions</th></tr>
+  </thead>
+  <tbody>
+  {% for a in agents %}
+    <tr class="{{ '' if a.actif else 'revoque' }}">
+      <td><strong>{{ a.prenom }} {{ a.nom_famille }}</strong><br><code>{{ a.nom }}</code></td>
+      <td>{{ a.ministere or '—' }}<br><small>{{ a.fonction }}</small></td>
+      <td>
+        {% if not a.actif %}<span class="pastille critique">révoqué</span>
+        {% elif not a.enrole %}<span class="pastille intrus">non enrôlé</span>
+        {% else %}<span class="pastille succes">actif</span>{% endif %}
+        {% if a.actif and not a.second_facteur %}<br><span class="pastille alerte">2ᵉ facteur à configurer</span>{% endif %}
+      </td>
+      <td>
+        {% if a.actif and a.enrole %}
+        <form method="post" action="{{ url_for('console.habilitation', identifiant=a.nom) }}">
+          <input type="hidden" name="jeton_csrf" value="{{ jeton_csrf }}">
+          {% if a.habilite %}
+            <span class="pastille confidentiel">CONFIDENTIEL</span>
+            <input type="hidden" name="habilite" value="non">
+            <button type="submit" class="discret">Retirer</button>
+          {% else %}
+            <input type="hidden" name="habilite" value="oui">
+            <button type="submit" class="discret">Habiliter</button>
+          {% endif %}
+        </form>
+        {% else %}—{% endif %}
+      </td>
+      <td class="actions">
+        {% if a.actif %}
+        <details>
+          <summary>Téléphone perdu</summary>
+          <form method="post" action="{{ url_for('console.urgence', identifiant=a.nom) }}">
+            <input type="hidden" name="jeton_csrf" value="{{ jeton_csrf }}">
+            <p>Déconnecte tous ses appareils et supprime son second facteur. Le compte reste actif.</p>
+            <label><input type="checkbox" required> Je confirme</label>
+            <button type="submit" class="avertissement">Couper ses appareils</button>
+          </form>
+        </details>
+        <details>
+          <summary>Révoquer</summary>
+          <form method="post" action="{{ url_for('console.revoquer', identifiant=a.nom) }}">
+            <input type="hidden" name="jeton_csrf" value="{{ jeton_csrf }}">
+            <label>Motif
+              <select name="motif">
+                <option>départ</option><option>mutation</option><option>compromission</option><option>suspension</option>
+              </select>
+            </label>
+            <label><input type="checkbox" required> Je confirme la révocation définitive</label>
+            <button type="submit" class="danger">Révoquer partout</button>
+          </form>
+        </details>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

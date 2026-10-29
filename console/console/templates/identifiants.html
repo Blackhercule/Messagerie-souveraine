@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block titre %}{{ titre }}{% endblock %}
+{% block contenu %}
+<h1>{{ titre }}</h1>
+<section class="carte identifiants">
+  <p>{{ explication }}</p>
+  <dl>
+    <dt>Identifiant</dt><dd><code>{{ identifiant }}</code></dd>
+    <dt>Mot de passe provisoire</dt><dd><code class="secret">{{ provisoire }}</code></dd>
+  </dl>
+  <p class="message alerte">Ce mot de passe n'est affiché qu'une seule fois et n'est conservé nulle part.
+    Remettez-le à l'agent en main propre, jamais par courriel.</p>
+  <p><a class="bouton" href="{{ url_for('console.agents') }}">Retour à la liste des agents</a></p>
+</section>
+{% endblock %}

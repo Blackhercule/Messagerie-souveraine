@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titre %}Enrôler un agent{% endblock %}
+{% block contenu %}
+<h1>Enrôler un agent</h1>
+<p class="aide">Seuls les agents enrôlés ici peuvent se connecter à la messagerie. L'identifiant est créé à partir du prénom et du nom.</p>
+
+<form method="post" class="carte formulaire">
+  <input type="hidden" name="jeton_csrf" value="{{ jeton_csrf }}">
+  <label>Prénom <input name="prenom" required maxlength="60" value="{{ formulaire.prenom if formulaire }}"></label>
+  <label>Nom <input name="nom" required maxlength="60" value="{{ formulaire.nom if formulaire }}"></label>
+  <label>Ministère <input name="ministere" required maxlength="120" value="{{ formulaire.ministere if formulaire }}"
+         placeholder="Ex. : Ministère de l'Économie (fictif)"></label>
+  <label>Fonction <input name="fonction" maxlength="120" value="{{ formulaire.fonction if formulaire }}"
+         placeholder="Ex. : Chargé d'études"></label>
+  <label class="case"><input type="checkbox" name="habilite" value="oui"> Habilité à accéder aux salons CONFIDENTIEL</label>
+  <button type="submit" class="bouton">Enrôler</button>
+</form>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titre %}Journal de sécurité{% endblock %}
+{% block contenu %}
+<h1>Journal de sécurité</h1>
+<p class="aide">Trois sources réunies : actions de la console, refus du serveur de messagerie, connexions (Keycloak).
+  Le journal ne contient jamais le contenu des messages.</p>
+
+<nav class="filtres">
+  <a href="{{ url_for('console.journal') }}" class="{{ 'actif' if not filtre }}">Tout</a>
+  {% for g in ['intrus', 'critique', 'alerte', 'info'] %}
+  <a href="{{ url_for('console.journal', gravite=g) }}" class="{{ 'actif' if filtre == g }}">{{ g }}</a>
+  {% endfor %}
+</nav>
+
+<table class="journal">
+  <thead><tr><th>Date (UTC)</th><th>Gravité</th><th>Source</th><th>Événement</th><th>Qui</th><th>Détail</th></tr></thead>
+  <tbody>
+  {% for l in lignes %}
+    <tr class="{{ l.gravite }}">
+      <td><time>{{ l.date[:19]|replace('T', ' ') }}</time></td>
+      <td><span class="pastille {{ l.gravite }}">{{ l.gravite }}</span></td>
+      <td>{{ l.source }}</td>
+      <td>{{ l.libelle }}</td>
+      <td>{{ l.auteur }}{% if l.cible and l.cible != l.auteur %}<br><small>→ {{ l.cible }}</small>{% endif %}</td>
+      <td><small>{{ l.detail if l.detail != l.libelle }}</small></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="vide">Aucun événement.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

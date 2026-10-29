@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block titre %}Erreur{% endblock %}
+{% block contenu %}
+<section class="carte centre">
+  <h1>Service momentanément indisponible</h1>
+  <p>{{ message }}</p>
+  <p><a href="{{ url_for('console.tableau') }}">Revenir au tableau de bord</a></p>
+</section>
+{% endblock %}

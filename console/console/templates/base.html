@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titre %}Console de sécurité{% endblock %} – Messagerie souveraine</title>
+  <link rel="stylesheet" href="{{ url_for('console.static', filename='console.css') }}">
+</head>
+<body>
+  <header class="bandeau">
+    <div class="marque">
+      <span class="sceau" aria-hidden="true">◆</span>
+      <div>
+        <strong>Console de sécurité</strong>
+        <small>Messagerie souveraine de l'administration</small>
+      </div>
+    </div>
+    {% if admin %}
+    <nav>
+      <a href="{{ url_for('console.tableau') }}" class="{{ 'actif' if request.endpoint == 'console.tableau' }}">Tableau de bord</a>
+      <a href="{{ url_for('console.agents') }}" class="{{ 'actif' if request.endpoint == 'console.agents' }}">Agents</a>
+      <a href="{{ url_for('console.enroler') }}" class="{{ 'actif' if request.endpoint == 'console.enroler' }}">Enrôler</a>
+      <a href="{{ url_for('console.journal') }}" class="{{ 'actif' if request.endpoint == 'console.journal' }}">Journal</a>
+    </nav>
+    <form method="post" action="{{ url_for('console.deconnexion') }}" class="session">
+      <input type="hidden" name="jeton_csrf" value="{{ jeton_csrf }}">
+      <span>{{ admin.nom_complet or admin.nom }}</span>
+      <button type="submit" class="discret">Se déconnecter</button>
+    </form>
+    {% endif %}
+  </header>
+
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for categorie, message in messages %}
+        <p class="message {{ categorie }}" role="status">{{ message }}</p>
+      {% endfor %}
+    {% endwith %}
+    {% block contenu %}{% endblock %}
+  </main>
+
+  <footer>
+    Données et comptes fictifs – prototype Hackathon 2026.
+    <a href="{{ adresse_messagerie }}/">Ouvrir la messagerie</a>
+  </footer>
+</body>
+</html>

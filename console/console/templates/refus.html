@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block titre %}Accès refusé{% endblock %}
+{% block contenu %}
+<section class="carte centre">
+  <h1>Accès refusé</h1>
+  <p>Le compte <code>{{ nom }}</code> n'a pas le rôle <strong>administrateur-securite</strong>.</p>
+  <p>Cette tentative a été enregistrée dans le journal de sécurité.</p>
+</section>
+{% endblock %}

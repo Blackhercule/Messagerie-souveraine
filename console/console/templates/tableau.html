@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block titre %}Tableau de bord{% endblock %}
+{% block contenu %}
+<h1>Tableau de bord</h1>
+
+<section class="tuiles">
+  <div class="tuile"><span class="chiffre">{{ actifs }}</span><span>agents enrôlés actifs</span></div>
+  <div class="tuile"><span class="chiffre">{{ habilites }}</span><span>habilités CONFIDENTIEL</span></div>
+  <div class="tuile"><span class="chiffre">{{ revoques }}</span><span>comptes révoqués</span></div>
+  <div class="tuile {{ 'alerte' if intrusions }}"><span class="chiffre">{{ intrusions }}</span><span>tentatives d'intrusion bloquées</span></div>
+</section>
+
+<div class="colonnes">
+  <section class="carte">
+    <h2>Derniers événements de sécurité</h2>
+    {% if journal %}
+    <ul class="flux">
+      {% for l in journal %}
+      <li class="{{ l.gravite }}">
+        <time>{{ l.date[:16]|replace('T', ' ') }}</time>
+        <span class="pastille {{ l.gravite }}">{{ l.gravite }}</span>
+        <span>{{ l.libelle }}{% if l.auteur %} – <strong>{{ l.auteur }}</strong>{% endif %}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p><a href="{{ url_for('console.journal') }}">Voir tout le journal →</a></p>
+    {% else %}
+    <p class="vide">Aucun événement pour l'instant.</p>
+    {% endif %}
+  </section>
+
+  <section class="carte">
+    <h2>Ce que le serveur ne peut pas lire</h2>
+    <ul class="garanties">
+      <li><strong>Contenu des messages et des fichiers</strong> : chiffré de bout en bout sur les appareils (protocole Matrix Olm/Megolm). Le serveur refuse tout message non chiffré.</li>
+      <li><strong>Clés de chiffrement</strong> : elles ne quittent jamais les appareils des agents.</li>
+      <li><strong>Notifications</strong> : envoyées sans contenu, uniquement « nouveau message ».</li>
+    </ul>
+    <h2>Ce que le serveur voit (minimisé)</h2>
+    <ul class="garanties">
+      <li>Qui est membre de quel salon, et quand un message est envoyé.</li>
+      <li>Adresses IP : conservées 1 jour, puis supprimées.</li>
+      <li>Salons classifiés : messages effacés automatiquement (7 jours CONFIDENTIEL, 30 jours DIFFUSION RESTREINTE).</li>
+    </ul>
+  </section>
+</div>
+{% endblock %}
