@@ -34,8 +34,8 @@ avec une application TOTP (FreeOTP, Aegis, Google Authenticator…), ou lancer
 |---|---|---|
 | 0:00 | Connexion d'Awa : mot de passe puis code TOTP | « Seuls les agents enrôlés entrent, toujours avec un second facteur. » |
 | 0:20 | `visiteur.externe` se connecte avec un bon mot de passe et un bon code : **refusé**. La console affiche « INTRUS ». | « Avoir un compte ne suffit pas : il faut avoir été enrôlé. » |
-| 0:40 | Awa écrit dans « Cellule budget 2027 » ; Issouf lit sur son téléphone. | « Web et mobile, même conversation, chiffrée de bout en bout. » |
-| 1:00 | `./outils/ce-que-voit-le-serveur.sh` puis `./outils/ce-que-voit-le-serveur.sh "budget"` → **0** | « Voici ce que stocke le serveur : du texte chiffré. Le mot n'y figure nulle part. » |
+| 0:40 | Awa écrit dans « Cellule budget 2027 » : « Réunion jeudi à 9 h » ; Issouf lit sur son téléphone. | « Web et mobile, même conversation, chiffrée de bout en bout. » |
+| 1:00 | `./outils/ce-que-voit-le-serveur.sh` puis `./outils/ce-que-voit-le-serveur.sh "jeudi"` → **0** | « Voici ce que stocke le serveur : du texte chiffré. Le mot du message n'y figure nulle part. » (Le nom du salon, lui, est visible : limite documentée de Matrix.) |
 | 1:30 | Console → Moussa → **Révoquer**. Sa fenêtre est déconnectée aussitôt ; il disparaît du salon ; il ne peut plus se reconnecter. | « Un agent quitte l'administration : un clic, tous ses appareils sont coupés. » |
 | 2:00 | Awa renomme un salon en `[CONFIDENTIEL] …` alors que Fatou y est : **refusé**. Avec Issouf seul : accepté, messages effacés après 7 jours. | « La classification est imposée par le serveur, pas par la bonne volonté. » |
 | 2:30 | `cd tests && python -m pytest -q` : 41 tests verts. Journal de la console. | « Chaque garantie est vérifiée automatiquement. Tout est open source. » |
