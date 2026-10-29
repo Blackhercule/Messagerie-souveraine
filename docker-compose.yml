@@ -1,0 +1,128 @@
+# Messagerie souveraine de l'administration – déploiement complet en une commande :
+#     ./installer.sh            (première fois : crée .env avec des secrets aléatoires)
+#     docker compose up -d      (ensuite)
+#
+# Tous les services tournent sur VOTRE machine. Le réseau « interne » n'a pas d'accès à
+# Internet : aucun service ne peut contacter l'extérieur (pas de Google, pas de matrix.org…).
+# Seul Caddy (HTTPS) est joignable depuis le réseau local.
+
+name: messagerie-souveraine
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${MOT_DE_PASSE_POSTGRES:?à définir dans .env}
+      MOT_DE_PASSE_POSTGRES: ${MOT_DE_PASSE_POSTGRES}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./postgres/creer-bases.sh:/docker-entrypoint-initdb.d/creer-bases.sh:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 20
+    networks: [interne]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    restart: unless-stopped
+    command: ["start", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${MOT_DE_PASSE_POSTGRES}
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_RELATIVE_PATH: /auth
+      # Les navigateurs passent par l'adresse publique (Caddy, HTTPS) ;
+      # Synapse et la console joignent Keycloak en direct dans le réseau interne.
+      KC_HOSTNAME: ${ADRESSE_PUBLIQUE}/auth
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HOSTNAME_ADMIN: http://127.0.0.1:8081/auth
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${MOT_DE_PASSE_ADMIN_KEYCLOAK:?à définir dans .env}
+      # Valeurs reportées dans keycloak/realm-administration.json à l'import.
+      ADRESSE_PUBLIQUE: ${ADRESSE_PUBLIQUE}
+      SECRET_OIDC_SYNAPSE: ${SECRET_OIDC_SYNAPSE}
+      SECRET_OIDC_CONSOLE: ${SECRET_OIDC_CONSOLE}
+    volumes:
+      - ./keycloak/realm-administration.json:/opt/keycloak/data/import/realm-administration.json:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck:
+      # L'image ne contient pas curl : petite requête HTTP écrite avec bash.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /auth/health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 10s
+      start_period: 60s
+      retries: 30
+    networks: [interne]
+
+  synapse:
+    build: ./synapse
+    restart: unless-stopped
+    environment:
+      NOM_SERVEUR_MATRIX: ${NOM_SERVEUR_MATRIX}
+      ADRESSE_PUBLIQUE: ${ADRESSE_PUBLIQUE}
+      MOT_DE_PASSE_POSTGRES: ${MOT_DE_PASSE_POSTGRES}
+      SECRET_ENREGISTREMENT_SYNAPSE: ${SECRET_ENREGISTREMENT_SYNAPSE:?à définir dans .env}
+      SECRET_MACAROON_SYNAPSE: ${SECRET_MACAROON_SYNAPSE:?à définir dans .env}
+      SECRET_FORMULAIRE_SYNAPSE: ${SECRET_FORMULAIRE_SYNAPSE:?à définir dans .env}
+      SECRET_OIDC_SYNAPSE: ${SECRET_OIDC_SYNAPSE:?à définir dans .env}
+    volumes:
+      - synapse:/data
+      - journal:/journal
+    depends_on:
+      postgres: {condition: service_healthy}
+      keycloak: {condition: service_healthy}
+    networks: [interne]
+
+  console:
+    build: ./console
+    restart: unless-stopped
+    environment:
+      ADRESSE_PUBLIQUE: ${ADRESSE_PUBLIQUE}
+      NOM_SERVEUR_MATRIX: ${NOM_SERVEUR_MATRIX}
+      SECRET_OIDC_CONSOLE: ${SECRET_OIDC_CONSOLE:?à définir dans .env}
+      SECRET_ENREGISTREMENT_SYNAPSE: ${SECRET_ENREGISTREMENT_SYNAPSE}
+      SECRET_SESSION_CONSOLE: ${SECRET_SESSION_CONSOLE:?à définir dans .env}
+    volumes:
+      - console:/donnees
+      - journal:/journal
+    depends_on:
+      keycloak: {condition: service_healthy}
+      synapse: {condition: service_healthy}
+    networks: [interne]
+
+  caddy:
+    build: ./caddy
+    restart: unless-stopped
+    environment:
+      DOMAINE: ${DOMAINE}
+      PORT_HTTPS: ${PORT_HTTPS}
+      ADRESSE_PUBLIQUE: ${ADRESSE_PUBLIQUE}
+      NOM_SERVEUR_MATRIX: ${NOM_SERVEUR_MATRIX}
+    ports:
+      - "${PORT_HTTPS}:${PORT_HTTPS}"   # messagerie, identité, console (HTTPS)
+      - "127.0.0.1:8081:8081"           # administration de Keycloak : cet ordinateur seulement
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./element/config.json:/srv/element/config.json:ro
+      - caddy:/data                     # contient l'autorité de certification interne
+    depends_on: [synapse, keycloak, console]
+    networks: [interne, publique]
+
+networks:
+  interne:
+    internal: true    # aucun accès à Internet depuis les services
+  publique: {}
+
+volumes:
+  postgres:
+  synapse:
+  journal:
+  console:
+  caddy:
