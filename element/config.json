@@ -6,6 +6,11 @@
         }
     },
     "brand": "Messagerie souveraine",
+    "branding": {
+        "auth_footer_links": [
+            {"text": "Console de sécurité", "url": "{{env "ADRESSE_PUBLIQUE"}}/console/"}
+        ]
+    },
     "default_device_display_name": "Messagerie souveraine (navigateur)",
     "permalink_prefix": "{{env "ADRESSE_PUBLIQUE"}}",
     "disable_custom_urls": true,
@@ -42,6 +47,7 @@
     "setting_defaults": {
         "language": "fr",
         "breadcrumbs": true,
+        "sendTypingNotifications": false,
         "UIFeature.feedback": false,
         "UIFeature.registration": false,
         "UIFeature.passwordReset": false,
