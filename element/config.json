@@ -1,0 +1,57 @@
+{
+    "default_server_config": {
+        "m.homeserver": {
+            "base_url": "{{env "ADRESSE_PUBLIQUE"}}",
+            "server_name": "{{env "NOM_SERVEUR_MATRIX"}}"
+        }
+    },
+    "brand": "Messagerie souveraine",
+    "default_device_display_name": "Messagerie souveraine (navigateur)",
+    "permalink_prefix": "{{env "ADRESSE_PUBLIQUE"}}",
+    "disable_custom_urls": true,
+    "disable_guests": true,
+    "disable_3pid_login": true,
+    "disable_login_language_selector": false,
+    "force_verification": true,
+    "default_country_code": "BF",
+    "default_theme": "light",
+    "default_federate": false,
+    "show_labs_settings": false,
+    "features": {},
+    "room_directory": {
+        "servers": ["{{env "NOM_SERVEUR_MATRIX"}}"]
+    },
+    "enable_presence_by_hs_url": {
+        "{{env "ADRESSE_PUBLIQUE"}}": false
+    },
+    "integrations_ui_url": "",
+    "integrations_rest_url": "",
+    "integrations_widgets_urls": [],
+    "mobile_guide_toast": false,
+    "embedded_pages": {
+        "login_for_welcome": true
+    },
+    "sso_redirect_options": {
+        "immediate": false,
+        "on_welcome_page": true
+    },
+    "element_call": {
+        "disable": true,
+        "use_exclusively": false
+    },
+    "setting_defaults": {
+        "language": "fr",
+        "breadcrumbs": true,
+        "UIFeature.feedback": false,
+        "UIFeature.registration": false,
+        "UIFeature.passwordReset": false,
+        "UIFeature.deactivate": false,
+        "UIFeature.identityServer": false,
+        "UIFeature.thirdPartyId": false,
+        "UIFeature.shareSocial": false,
+        "UIFeature.urlPreviews": false,
+        "UIFeature.widgets": false,
+        "UIFeature.voip": false,
+        "UIFeature.locationSharing": false
+    }
+}

@@ -1,0 +1,80 @@
+# Point d'entrée unique de la messagerie : HTTPS avec une autorité de certification
+# INTERNE (aucun service extérieur comme Let's Encrypt), puis répartition vers chaque service.
+{
+	local_certs
+	skip_install_trust
+}
+
+{$DOMAINE}:{$PORT_HTTPS} {
+	tls internal
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "geolocation=(), payment=(), usb=()"
+		-Server
+	}
+
+	# Les API d'administration ne sont JAMAIS exposées : seule la console y accède,
+	# depuis le réseau Docker privé.
+	handle /_synapse/admin/* {
+		respond 404
+	}
+	handle /auth/admin/* {
+		respond 404
+	}
+
+	# Découverte du serveur par les applications Matrix (web et mobile).
+	handle /.well-known/matrix/client {
+		header Content-Type application/json
+		header Access-Control-Allow-Origin *
+		respond `{"m.homeserver":{"base_url":"{$ADRESSE_PUBLIQUE}"}}`
+	}
+
+	# Serveur de messagerie (API Matrix des applications uniquement, pas de fédération).
+	handle /_matrix/* {
+		reverse_proxy synapse:8008
+	}
+	handle /_synapse/client/* {
+		reverse_proxy synapse:8008
+	}
+
+	# Identité de l'administration (Keycloak : mot de passe + code TOTP).
+	handle /auth/* {
+		reverse_proxy keycloak:8080
+	}
+
+	# Console de sécurité.
+	handle /console* {
+		reverse_proxy console:8000
+	}
+
+	# Configuration d'Element, adaptée à ce serveur.
+	handle /config*.json {
+		root * /srv/element
+		rewrite * /config.json
+		templates {
+			mime application/json
+		}
+		header Content-Type application/json
+		header Cache-Control no-store
+		file_server
+	}
+
+	# Application web Element (fichiers intégrés à l'image, empreinte vérifiée à la construction).
+	handle {
+		root * /srv/element
+		header X-Frame-Options SAMEORIGIN
+		header Content-Security-Policy "frame-ancestors 'self'"
+		@pages path / /index.html /i18n/* /version
+		header @pages Cache-Control no-cache
+		file_server
+	}
+}
+
+# Console d'administration de Keycloak : uniquement sur cet ordinateur (127.0.0.1:8081),
+# jamais sur le réseau. Voir docker-compose.yml.
+http://:8081 {
+	reverse_proxy keycloak:8080
+}
