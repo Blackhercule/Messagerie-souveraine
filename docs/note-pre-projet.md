@@ -1,78 +1,86 @@
 # Note de pré-projet – Messagerie souveraine de l'administration
 
-**Équipe** : Groupe Pegasus — *[à compléter : noms, rôles et compétences de chaque membre]*  
-**Défi** : la messagerie souveraine de l'administration · **Licence** : AGPL-3.0
+**Équipe** : Groupe Pegasus · **Défi** : la messagerie souveraine de l'administration · **Licence du code** : AGPL-3.0
 
-## 1. Le problème
+## 1. Concept
 
 Faute d'outil officiel, beaucoup d'agents échangent des informations de service sur des
-messageries grand public, avec leur numéro personnel. Les données sont hébergées à l'étranger,
-l'administration ne sait pas qui fait partie d'un groupe, et lorsqu'un agent quitte son poste
-ou perd son téléphone, **personne ne peut lui retirer l'accès** aux conversations de service.
+messageries grand public : données hébergées à l'étranger, groupes incontrôlés, et quand un
+agent quitte son poste ou perd son téléphone, **personne ne peut lui retirer l'accès**.
+Nous proposons une messagerie instantanée **web et mobile, hébergée par l'administration**,
+**chiffrée de bout en bout**, **réservée aux agents enrôlés** (mot de passe + second facteur),
+pilotée par une **console de sécurité** qui coupe l'accès d'un agent sur tous ses appareils en
+un clic. Elle s'installe en une commande et fonctionne même sur un réseau local **sans Internet**.
 
-## 2. Notre réponse
+## 2. Architecture
 
-Une messagerie instantanée (web et mobile) **hébergée par l'administration**, construite sur
-des briques open source reconnues, et renforcée par des contrôles de sécurité que nous avons
-développés :
+```
+  Navigateur (Element Web)        Téléphone (application Element ou navigateur)
+             \                         /
+              +------- Caddy ---------+     HTTPS, autorité de certification interne ;
+              |          |            |     API d'administration jamais exposées
+          Synapse     Keycloak    Console de sécurité
+       (+ module de   (identité,  (enrôlement, révocation,
+        sécurité)     TOTP, rôles) urgence, habilitations, journal)
+              \          |            /
+                --- PostgreSQL ---            réseau Docker interne, sans accès à Internet
+```
 
-- **Chiffrement de bout en bout** avec le protocole Matrix (Olm/Megolm) : le serveur de
-  l'administration transporte les messages sans pouvoir les lire, et refuse tout message en clair.
-- **Agents enrôlés seulement** : un administrateur crée le compte ; à la première connexion,
-  l'agent choisit son mot de passe et enregistre un **second facteur** (application TOTP libre, hors ligne, sans SMS).
-- **Console de sécurité** : enrôlement, **révocation immédiate sur tous les appareils**, bouton
-  d'urgence « téléphone perdu », habilitations, journal des intrusions.
-- **Salons classifiés** : `[DIFFUSION RESTREINTE]` et `[CONFIDENTIEL]`, avec accès réservé aux
-  habilités, déclassement interdit et effacement automatique des messages (30 / 7 jours).
-- **Souveraineté** : installation en une commande sur un serveur de l'administration, qui
-  fonctionne même sur un réseau local **sans Internet**.
+Un agent se connecte toujours par **Keycloak** (mot de passe + code TOTP) ; Synapse n'accepte
+que les membres du groupe « agents ». La console pilote Keycloak et Synapse par leurs API
+d'administration ; notre **module serveur** applique les règles de sécurité dans Synapse.
 
-## 3. Pour qui, et comment on l'utilise
+## 3. Protocole de chiffrement retenu
 
-| Acteur | Parcours |
+**Matrix Olm / Megolm**, implémenté par **vodozemac** (Rust, audité publiquement) dans les
+applications Element : Olm (double ratchet, Curve25519, signatures Ed25519) échange les clés
+entre appareils ; Megolm chiffre les messages de groupe (**AES-256**, intégrité **HMAC-SHA-256**).
+Les clés restent sur les appareils. **L'équipe n'écrit aucune cryptographie** ; notre serveur
+**refuse** tout message non chiffré et tout retrait du chiffrement d'un salon.
+
+## 4. Composants open source et licences
+
+| Composant | Rôle | Licence |
+|---|---|---|
+| Synapse 1.164.1 | Serveur de messagerie Matrix | AGPL-3.0 |
+| Element Web 1.12.33, Element Android / iOS | Applications web et mobile | AGPL-3.0 |
+| vodozemac | Olm / Megolm | Apache-2.0 |
+| Keycloak 26.8.1 | Identité, second facteur TOTP, rôles | Apache-2.0 |
+| PostgreSQL 16 | Base de données | PostgreSQL License |
+| Caddy 2.11.2 | HTTPS et autorité de certification interne | Apache-2.0 |
+| Flask / Authlib / Requests / Gunicorn | Console de sécurité | BSD-3 / BSD-3 / Apache-2.0 / MIT |
+| FreeOTP, Aegis (au choix) | Application TOTP hors ligne des agents | Apache-2.0 / GPL-3.0 |
+| pytest, pyotp, matrix-js-sdk | Tests automatisés | MIT / MIT / Apache-2.0 |
+| Docker Engine et Compose | Déploiement | Apache-2.0 |
+
+## 5. Niveau d'engagement open source : « Étendre et adapter »
+
+Nous ne modifions pas Synapse, Element ni Keycloak : nous les **configurons** pour la
+souveraineté (pas de fédération ni de service tiers), nous **étendons** Synapse par son API
+officielle de modules, et nous publions tout notre travail sous AGPL-3.0.
+
+## 6. Fonctionnalités innovantes
+
+- **Salons classifiés** `[DIFFUSION RESTREINTE]` / `[CONFIDENTIEL]` imposés par le serveur :
+  accès réservé aux habilités, déclassement interdit, messages effacés après 30 / 7 jours.
+- **Révocation coordonnée** identité + messagerie : compte désactivé, sessions fermées, tous les
+  appareils déconnectés et retrait des conversations, en une à deux secondes.
+- **Bouton d'urgence « téléphone perdu »** : appareils coupés, second facteur supprimé,
+  réenrôlement avec un mot de passe provisoire remis en main propre.
+- **Journal de sécurité** : intrus (compte inconnu ou non enrôlé), agents révoqués qui
+  retentent, refus du serveur — jamais le contenu des messages.
+- **41 tests de sécurité automatisés**, dont un échange chiffré réel dont le texte est
+  recherché sans succès dans toute la base du serveur.
+
+## 7. Répartition des rôles
+
+| Membre | Rôle dans le projet |
 |---|---|
-| Agent | Reçoit identifiant et mot de passe provisoire en main propre → première connexion (mot de passe + TOTP) → échange dans le navigateur ou l'application Element, en individuel ou en groupe |
-| Responsable sécurité | Enrôle, habilite, révoque depuis la console ; suit le journal (connexions refusées, refus du serveur) |
-| DSI / hébergeur | Installe avec `./installer.sh`, garde la main sur les données, applique les mises à jour |
+| *[Nom 1]* | Chef de projet, architecture et déploiement (Docker, installation) |
+| *[Nom 2]* | Sécurité : chiffrement, identité (Keycloak, TOTP), note de sécurité |
+| *[Nom 3]* | Développement : module serveur Synapse et console de sécurité |
+| *[Nom 4]* | Tests automatisés, démonstration, vidéo et documentation |
 
-## 4. Ce qui est innovant
-
-Les briques (Synapse, Element, Keycloak) existent ; notre valeur est de les **assembler pour un
-usage d'État sans aucune dépendance extérieure** et d'ajouter ce qui leur manque pour
-l'administration : contrôle des habilitations **imposé par le serveur**, révocation en un clic
-coordonnée entre l'identité et la messagerie, réponse à la perte d'un téléphone, et des
-**tests de sécurité automatisés** qui prouvent chaque garantie à chaque version.
-
-## 5. Faisabilité
-
-- **Technique** : prototype fonctionnel, 41 tests automatisés réussis (dont un échange
-  chiffré réel dont le texte est recherché sans succès dans toute la base).
-- **Matériel** : un serveur de l'administration (4 cœurs, 8 Go de mémoire, 100 Go de disque)
-  devrait suffire, selon nos estimations, pour un pilote de quelques centaines d'agents.
-- **Coût logiciel** : nul (logiciels libres) ; le coût est l'hébergement et l'exploitation.
-- **Compétences** : Docker, Python, administration Linux ; notre code reste petit et lisible
-  (module serveur, console, configuration).
-
-## 6. Feuille de route
-
-| Étape | Contenu |
-|---|---|
-| 1. Pilote (3 mois) | Un ministère, 50 agents ; certificats de l'infrastructure de clés de l'État ; sauvegardes chiffrées ; formation des agents à la vérification des appareils |
-| 2. Généralisation | Application d'authentification libre (Aegis ou FreeOTP) recompilée et distribuée par l'administration, puis clés de sécurité FIDO2 ; service de notifications hébergé par l'administration (UnifiedPush) ; envoi des clés aux seuls appareils vérifiés ; haute disponibilité ; audit de sécurité externe |
-| 3. Interministériel | Un serveur par ministère, fédérés **uniquement entre eux** (liste blanche) ; annuaire commun |
-| 4. Accessibilité | Traduction des applications en langues nationales, proposée directement aux projets Element et Keycloak (contribution aux projets d'origine) |
-
-## 7. Risques et réponses
-
-| Risque | Réponse |
-|---|---|
-| Faible adoption face aux messageries grand public | Applications familières (Element), enrôlement simple, usage rendu officiel par les services |
-| Agent qui ne vérifie pas ses appareils | Alerte visible dans l'application, formation, puis blocage des appareils non vérifiés |
-| Panne du serveur | Sauvegardes, procédure de reprise, puis haute disponibilité à l'étape 2 |
-| Failles dans un composant | Versions figées et suivies, mises à jour régulières, tests automatisés à chaque mise à jour |
-
-## 8. Engagement open source
-
-Niveau **« Étendre et adapter »** : nous utilisons Synapse, Element et Keycloak sans les
-modifier, nous étendons Synapse par son API officielle de modules et nous publions tout notre
-travail sous AGPL-3.0. Chaque technologie et sa licence sont listées dans le [README](../README.md).
+**Suite envisagée** : pilote dans un ministère ; application d'authentification libre
+redistribuée par l'administration, puis clés FIDO2 ; notifications hébergées par
+l'administration ; traductions en langues nationales proposées aux projets d'origine.
