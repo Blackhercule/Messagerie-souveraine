@@ -31,7 +31,7 @@ la diffusion d'un document classifié à un agent non habilité, et la dépendan
 |---|---|---|
 | Lecture par le serveur | Chiffrement de bout en bout ; refus du clair ; notifications sans contenu | `test_2_chiffrement.py` (texte cherché dans **toutes** les tables) |
 | Intrus, inscription sauvage | Pas d'inscription, pas d'invités, pas de connexion par mot de passe Matrix : **SSO Keycloak seul** ; il faut être dans le groupe `agents` | `test_1_acces.py` |
-| Vol de mot de passe, hameçonnage | **TOTP obligatoire** ; code utilisable une seule fois ; PKCE sur l'échange OIDC | `test_second_facteur_exige` |
+| Vol de mot de passe, hameçonnage | **TOTP obligatoire** (norme ouverte RFC 6238, code calculé hors ligne par une application libre : FreeOTP, Aegis, que l'administration peut recompiler et distribuer elle-même ; pas de SMS) ; code utilisable une seule fois ; PKCE sur l'échange OIDC | `test_second_facteur_exige` |
 | Essais en série | Keycloak verrouille après 5 échecs (1 min puis jusqu'à 15 min) ; limites de débit Synapse | configuration du royaume |
 | Départ d'un agent | **Révocation** : compte désactivé, sessions fermées (Keycloak prévient Synapse par déconnexion *back-channel*), appareils supprimés, retrait des salons, en une à deux secondes | `test_revocation_immediate_sur_tous_les_appareils` |
 | Téléphone perdu ou volé | **Bouton d'urgence** : appareils déconnectés, second facteur supprimé, nouveau mot de passe provisoire remis en main propre | `test_bouton_urgence_telephone_perdu` |

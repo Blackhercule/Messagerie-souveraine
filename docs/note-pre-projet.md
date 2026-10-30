@@ -19,7 +19,7 @@ développés :
 - **Chiffrement de bout en bout** avec le protocole Matrix (Olm/Megolm) : le serveur de
   l'administration transporte les messages sans pouvoir les lire, et refuse tout message en clair.
 - **Agents enrôlés seulement** : un administrateur crée le compte ; à la première connexion,
-  l'agent choisit son mot de passe et enregistre un **second facteur** (application TOTP, sans SMS).
+  l'agent choisit son mot de passe et enregistre un **second facteur** (application TOTP libre, hors ligne, sans SMS).
 - **Console de sécurité** : enrôlement, **révocation immédiate sur tous les appareils**, bouton
   d'urgence « téléphone perdu », habilitations, journal des intrusions.
 - **Salons classifiés** : `[DIFFUSION RESTREINTE]` et `[CONFIDENTIEL]`, avec accès réservé aux
@@ -58,7 +58,7 @@ coordonnée entre l'identité et la messagerie, réponse à la perte d'un télé
 | Étape | Contenu |
 |---|---|
 | 1. Pilote (3 mois) | Un ministère, 50 agents ; certificats de l'infrastructure de clés de l'État ; sauvegardes chiffrées ; formation des agents à la vérification des appareils |
-| 2. Généralisation | Service de notifications hébergé par l'administration (UnifiedPush) ; envoi des clés aux seuls appareils vérifiés ; haute disponibilité ; audit de sécurité externe |
+| 2. Généralisation | Application d'authentification libre (Aegis ou FreeOTP) recompilée et distribuée par l'administration, puis clés de sécurité FIDO2 ; service de notifications hébergé par l'administration (UnifiedPush) ; envoi des clés aux seuls appareils vérifiés ; haute disponibilité ; audit de sécurité externe |
 | 3. Interministériel | Un serveur par ministère, fédérés **uniquement entre eux** (liste blanche) ; annuaire commun |
 | 4. Accessibilité | Traduction des applications en langues nationales, proposée directement aux projets Element et Keycloak (contribution aux projets d'origine) |
 
