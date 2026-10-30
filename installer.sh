@@ -57,11 +57,13 @@ set -a; . ./.env; set +a
 echo "Construction et démarrage (la première fois : quelques minutes)…"
 docker compose up -d --build
 
+# --ssl-no-revoke : sous Windows, curl veut vérifier la révocation du certificat auprès d'un
+# service extérieur ; notre autorité est interne (pas de liste de révocation publique).
 echo -n "Attente du démarrage complet"
 for _ in $(seq 1 120); do
   if docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./ca-messagerie.crt >/dev/null 2>&1 \
-     && curl -fsS --cacert ca-messagerie.crt "$ADRESSE_PUBLIQUE/_matrix/client/versions" >/dev/null 2>&1 \
-     && curl -fsS --cacert ca-messagerie.crt -o /dev/null "$ADRESSE_PUBLIQUE/auth/realms/administration"; then
+     && curl -fsS --ssl-no-revoke --cacert ca-messagerie.crt "$ADRESSE_PUBLIQUE/_matrix/client/versions" >/dev/null 2>&1 \
+     && curl -fsS --ssl-no-revoke --cacert ca-messagerie.crt -o /dev/null "$ADRESSE_PUBLIQUE/auth/realms/administration"; then
     echo " : prêt."
     break
   fi
