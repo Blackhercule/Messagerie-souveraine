@@ -16,9 +16,24 @@ from urllib.parse import parse_qs, urljoin, urlparse
 import pyotp
 import requests
 
-ADRESSE = os.environ.get("ADRESSE_PUBLIQUE", "https://localhost:8443").rstrip("/")
+def _lire_env() -> dict:
+    """Lit le fichier .env créé par installer.sh (adresse de l'installation)."""
+    valeurs = {}
+    try:
+        with open(os.path.join(os.path.dirname(__file__), "..", ".env"), encoding="utf-8") as f:
+            for ligne in f:
+                if "=" in ligne and not ligne.lstrip().startswith("#"):
+                    cle, valeur = ligne.strip().split("=", 1)
+                    valeurs[cle] = valeur
+    except OSError:
+        pass
+    return valeurs
+
+
+_ENV = _lire_env()
+ADRESSE = os.environ.get("ADRESSE_PUBLIQUE", _ENV.get("ADRESSE_PUBLIQUE", "https://localhost:8443")).rstrip("/")
 CA_RACINE = os.environ.get("CA_RACINE", os.path.join(os.path.dirname(__file__), "..", "ca-messagerie.crt"))
-NOM_SERVEUR = os.environ.get("NOM_SERVEUR_MATRIX", "messagerie.local")
+NOM_SERVEUR = os.environ.get("NOM_SERVEUR_MATRIX", _ENV.get("NOM_SERVEUR_MATRIX", "messagerie.local"))
 
 # Keycloak refuse qu'un même code TOTP serve deux fois : on garde la trace des codes déjà utilisés.
 _codes_utilises = {}
