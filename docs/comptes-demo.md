@@ -16,7 +16,9 @@ sont publics : ils ne doivent **jamais** servir dans un vrai déploiement (`./in
 | `visiteur.externe` | `Demo-Visiteur-2026` | Identité valide mais **non enrôlée** : l'intrus | `IRSW232WNFZWS5DFOVZEK6DUGIYDENQ` |
 
 **Obtenir le code à 6 chiffres** : scanner le QR code du compte (`docs/qr-totp/<compte>.png`)
-avec une application TOTP (FreeOTP, Aegis, Google Authenticator…), ou lancer
+avec une application TOTP **libre et sans compte en ligne** : FreeOTP (iPhone et Android,
+licence Apache-2.0) ou Aegis (Android, licence GPL-3.0). Le code est calculé sur le téléphone,
+sans réseau (norme ouverte TOTP, RFC 6238). Ou lancer
 `python3 outils/code_totp.py awa.sawadogo`. Un même code ne peut servir qu'**une fois**.
 
 ## Préparer la démonstration (10 minutes, la veille)

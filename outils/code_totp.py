@@ -1,7 +1,7 @@
 """Affiche le code du second facteur (TOTP) d'un compte de DÉMONSTRATION.
 
 Pour la démo uniquement : un vrai agent utilise une application sur son téléphone
-(FreeOTP, Aegis, Google Authenticator…). Usage : python3 outils/code_totp.py awa.sawadogo
+libre et sans compte en ligne (FreeOTP, Aegis). Usage : python3 outils/code_totp.py awa.sawadogo
 """
 
 import base64
