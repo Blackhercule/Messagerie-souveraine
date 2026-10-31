@@ -75,7 +75,7 @@ def test_echange_chiffre_illisible_en_base():
     env = {**os.environ, "ADRESSE_PUBLIQUE": ADRESSE, "NODE_EXTRA_CA_CERTS": os.path.abspath(CA_RACINE),
            "SESSIONS": json.dumps(sessions)}
     sortie = subprocess.run([shutil.which("node") or "node", "echange.mjs"], cwd=dossier, env=env, capture_output=True, text=True,
-                            timeout=240)
+                            encoding="utf-8", timeout=240)
     assert sortie.returncode == 0, sortie.stdout[-2000:] + sortie.stderr[-2000:]
     ligne = next(l for l in sortie.stdout.splitlines() if l.startswith("RESULTAT "))
     resultat = json.loads(ligne.removeprefix("RESULTAT "))
@@ -89,7 +89,8 @@ def test_echange_chiffre_illisible_en_base():
     secret = resultat["phrase"].split(" : ")[0]  # « Note confidentielle n°… », unique à cette exécution
 
     def sql(requete):
-        return subprocess.run(psql + ["-c", requete], capture_output=True, text=True, check=True).stdout.strip()
+        return subprocess.run(psql + ["-c", requete], capture_output=True, text=True, encoding="utf-8",
+                              check=True).stdout.strip()
 
     tables = sql("SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' "
                  "AND data_type IN ('text', 'character varying', 'bytea', 'json', 'jsonb') "
