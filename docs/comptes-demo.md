@@ -30,6 +30,20 @@ sans réseau (norme ouverte TOTP, RFC 6238). Ou lancer
 3. Créer avec Awa un salon « Cellule budget 2027 », inviter Issouf, Fatou et Moussa.
 4. Ouvrir la console de sécurité (`/console`, compte `admin.securite`).
 
+## Changer de réseau (jour de la présentation)
+
+Sur un autre Wi-Fi, l'adresse IP du PC change. **Ne pas réinitialiser** : il suffit de
+
+```bash
+./installer.sh --changer-adresse 10.x.x.x   # nouvelle adresse IP du PC (ipconfig)
+```
+
+Les comptes, les conversations et l'autorité de certification sont conservés : rien à
+réinstaller sur le PC ni sur les téléphones. Ouvrir la nouvelle adresse et se reconnecter.
+Ouvrir aussi le port 8443 dans le pare-feu du PC, et vérifier que le réseau laisse les appareils
+communiquer entre eux (sinon, utiliser le partage de connexion d'un téléphone : la messagerie
+n'a pas besoin d'Internet).
+
 ## Scénario de la vidéo (3 minutes)
 
 | Temps | Ce qu'on montre | Ce qu'on dit |

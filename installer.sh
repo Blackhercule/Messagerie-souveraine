@@ -3,13 +3,30 @@
 #
 #   ./installer.sh                     démonstration sur cet ordinateur (https://localhost:8443)
 #   ./installer.sh 192.168.1.20        démonstration sur le réseau local (téléphones, autres PC)
-#   ./installer.sh --reinitialiser …   efface TOUTES les données et recommence (changement d'adresse)
+#   ./installer.sh --changer-adresse 10.0.0.5
+#                                      nouveau réseau (jour de la présentation) : GARDE les comptes,
+#                                      les conversations et le certificat déjà installé sur les appareils
+#   ./installer.sh --reinitialiser …   efface TOUTES les données et recommence de zéro
 #
 # Sous Windows : lancer ce script depuis « Git Bash », avec Docker Desktop démarré.
 set -euo pipefail
 # Git Bash (Windows) : ne pas transformer les chemins des conteneurs (« caddy:/data/… »).
 export MSYS_NO_PATHCONV=1
 cd "$(dirname "$0")"
+
+adresse_valide() {  # une adresse IP ou un nom (lettres, chiffres, points, tirets)
+  case "$1" in
+    ""|*[!A-Za-z0-9.-]*) echo "Adresse invalide : « $1 » (exemple : 192.168.1.20)."; exit 1 ;;
+  esac
+}
+
+CHANGEMENT_ADRESSE=""
+if [ "${1:-}" = "--changer-adresse" ]; then
+  [ -f .env ] || { echo "Aucune installation ici : lancez d'abord ./installer.sh ${2:-<adresse>}"; exit 1; }
+  CHANGEMENT_ADRESSE="${2:-}"
+  adresse_valide "$CHANGEMENT_ADRESSE"
+  shift 2
+fi
 
 if [ "${1:-}" = "--reinitialiser" ]; then
   shift
@@ -28,6 +45,7 @@ secret() {  # 32 octets aléatoires, en hexadécimal
 
 if [ ! -f .env ]; then
   DOMAINE="${1:-localhost}"
+  adresse_valide "$DOMAINE"
   PORT_HTTPS="${PORT_HTTPS:-8443}"
   if [ "$PORT_HTTPS" = "443" ]; then ADRESSE="https://$DOMAINE"; else ADRESSE="https://$DOMAINE:$PORT_HTTPS"; fi
   umask 077
@@ -52,6 +70,15 @@ elif [ -n "${1:-}" ]; then
   exit 1
 fi
 
+if [ -n "$CHANGEMENT_ADRESSE" ]; then
+  port=$(sed -n 's/^PORT_HTTPS=//p' .env)
+  if [ "$port" = "443" ]; then nouvelle="https://$CHANGEMENT_ADRESSE"; else nouvelle="https://$CHANGEMENT_ADRESSE:$port"; fi
+  sed -i.precedent -e "s#^DOMAINE=.*#DOMAINE=$CHANGEMENT_ADRESSE#" \
+                   -e "s#^ADRESSE_PUBLIQUE=.*#ADRESSE_PUBLIQUE=$nouvelle#" .env
+  rm -f .env.precedent
+  echo "Nouvelle adresse : $nouvelle (comptes, conversations et certificat conservés)."
+fi
+
 set -a; . ./.env; set +a
 
 echo "Construction et démarrage (la première fois : quelques minutes)…"
@@ -71,6 +98,27 @@ for _ in $(seq 1 120); do
   fi
   echo -n "."; sleep 5
 done
+
+if [ -n "$CHANGEMENT_ADRESSE" ]; then
+  # Keycloak a enregistré dans sa base, à la première installation, les adresses vers lesquelles
+  # il a le droit de renvoyer un agent après sa connexion. On les remplace par la nouvelle :
+  # l'ancienne est refusée (protection contre les redirections détournées).
+  echo "Mise à jour des adresses autorisées dans Keycloak…"
+  kcadm() {
+    docker compose exec -T -e KC_CLI_PASSWORD="$MOT_DE_PASSE_ADMIN_KEYCLOAK" keycloak \
+      /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config
+  }
+  kcadm config credentials --server http://localhost:8080/auth --realm master --user admin >/dev/null 2>&1 \
+    || { echo "Connexion à l'administration de Keycloak impossible (mot de passe dans .env ?)."; exit 1; }
+  id_synapse=$(kcadm get clients -r administration -q clientId=synapse --fields id --format csv --noquotes | tr -d '\r')
+  id_console=$(kcadm get clients -r administration -q clientId=console-securite --fields id --format csv --noquotes | tr -d '\r')
+  kcadm update "clients/$id_synapse" -r administration \
+    -s "redirectUris=[\"$ADRESSE_PUBLIQUE/_synapse/client/oidc/callback\"]" -s "webOrigins=[\"$ADRESSE_PUBLIQUE\"]"
+  kcadm update "clients/$id_console" -r administration \
+    -s "redirectUris=[\"$ADRESSE_PUBLIQUE/console/connexion/retour\"]" -s "webOrigins=[\"$ADRESSE_PUBLIQUE\"]" \
+    -s "attributes.\"post.logout.redirect.uris\"=$ADRESSE_PUBLIQUE/console/"
+  echo "Adresse changée. Sur chaque appareil, ouvrez la nouvelle adresse et reconnectez-vous."
+fi
 
 cat <<EOF
 

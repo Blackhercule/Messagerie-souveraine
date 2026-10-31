@@ -45,6 +45,7 @@ Prérequis : Docker et Docker Compose (sous Windows : Docker Desktop, puis **Git
 ```bash
 ./installer.sh                 # démonstration sur cet ordinateur : https://localhost:8443
 ./installer.sh 192.168.1.20    # ou sur le réseau local, pour les téléphones (adresse IP du PC)
+./installer.sh --changer-adresse 10.0.0.5   # autre réseau : comptes, messages et certificat conservés
 ```
 
 Le script crée `.env` avec des secrets aléatoires, construit et démarre tous les services,
