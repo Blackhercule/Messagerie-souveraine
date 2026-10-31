@@ -59,11 +59,13 @@ docker compose up -d --build
 
 # --ssl-no-revoke : sous Windows, curl veut vérifier la révocation du certificat auprès d'un
 # service extérieur ; notre autorité est interne (pas de liste de révocation publique).
+# Les sorties sont jetées par des redirections du shell (« >/dev/null ») et non par « -o /dev/null » :
+# avec MSYS_NO_PATHCONV=1, curl.exe sous Windows ne saurait pas écrire dans « /dev/null ».
 echo -n "Attente du démarrage complet"
 for _ in $(seq 1 120); do
   if docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./ca-messagerie.crt >/dev/null 2>&1 \
      && curl -fsS --ssl-no-revoke --cacert ca-messagerie.crt "$ADRESSE_PUBLIQUE/_matrix/client/versions" >/dev/null 2>&1 \
-     && curl -fsS --ssl-no-revoke --cacert ca-messagerie.crt -o /dev/null "$ADRESSE_PUBLIQUE/auth/realms/administration"; then
+     && curl -fsS --ssl-no-revoke --cacert ca-messagerie.crt "$ADRESSE_PUBLIQUE/auth/realms/administration" >/dev/null 2>&1; then
     echo " : prêt."
     break
   fi
