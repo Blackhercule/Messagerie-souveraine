@@ -44,6 +44,10 @@ Ouvrir aussi le port 8443 dans le pare-feu du PC, et vérifier que le réseau la
 communiquer entre eux (sinon, utiliser le partage de connexion d'un téléphone : la messagerie
 n'a pas besoin d'Internet).
 
+**Sans Internet le jour J** : faire `git pull` puis `docker compose up -d --build` la veille,
+avec Internet. Le jour même, `--changer-adresse` réutilise les images déjà construites si la
+reconstruction échoue faute d'Internet.
+
 ## Scénario de la vidéo (3 minutes)
 
 | Temps | Ce qu'on montre | Ce qu'on dit |

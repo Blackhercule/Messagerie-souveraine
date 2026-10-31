@@ -82,7 +82,13 @@ fi
 set -a; . ./.env; set +a
 
 echo "Construction et démarrage (la première fois : quelques minutes)…"
-docker compose up -d --build
+if ! docker compose up -d --build; then
+  # Jour de la présentation, sans Internet : la reconstruction peut échouer. L'adresse n'est lue
+  # qu'au démarrage des services : les images déjà construites suffisent.
+  [ -n "$CHANGEMENT_ADRESSE" ] || exit 1
+  echo "Reconstruction impossible (pas d'Internet ?) : redémarrage avec les images déjà construites…"
+  docker compose up -d
+fi
 
 # --ssl-no-revoke : sous Windows, curl veut vérifier la révocation du certificat auprès d'un
 # service extérieur ; notre autorité est interne (pas de liste de révocation publique).
