@@ -65,7 +65,8 @@ def test_echange_chiffre_illisible_en_base():
     """Deux agents échangent avec un vrai client Matrix ; la phrase ne doit apparaître nulle part en base."""
     dossier = os.path.join(os.path.dirname(__file__), "e2ee")
     if not os.path.isdir(os.path.join(dossier, "node_modules")):
-        subprocess.run(["npm", "install", "--no-audit", "--no-fund"], cwd=dossier, check=True)
+        # Sous Windows, npm est un script « npm.cmd » : il faut son chemin complet.
+        subprocess.run([shutil.which("npm") or "npm", "install", "--no-audit", "--no-fund"], cwd=dossier, check=True)
     # Deux nouveaux appareils, connectés par Keycloak (mot de passe + TOTP).
     sessions = {}
     for role, qui in (("expediteur", "awa"), ("destinataire", "issouf")):
@@ -73,7 +74,7 @@ def test_echange_chiffre_illisible_en_base():
         sessions[role] = {"user_id": c.identifiant, "access_token": c.jeton, "device_id": c.appareil}
     env = {**os.environ, "ADRESSE_PUBLIQUE": ADRESSE, "NODE_EXTRA_CA_CERTS": os.path.abspath(CA_RACINE),
            "SESSIONS": json.dumps(sessions)}
-    sortie = subprocess.run(["node", "echange.mjs"], cwd=dossier, env=env, capture_output=True, text=True,
+    sortie = subprocess.run([shutil.which("node") or "node", "echange.mjs"], cwd=dossier, env=env, capture_output=True, text=True,
                             timeout=240)
     assert sortie.returncode == 0, sortie.stdout[-2000:] + sortie.stderr[-2000:]
     ligne = next(l for l in sortie.stdout.splitlines() if l.startswith("RESULTAT "))
