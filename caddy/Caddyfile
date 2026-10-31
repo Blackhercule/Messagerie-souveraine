@@ -68,6 +68,8 @@
 
 	# Sur un téléphone, Element Web affiche d'abord « téléchargez l'application ». La messagerie
 	# fonctionne pourtant dans le navigateur du téléphone : on ouvre directement la connexion.
+	# Normalement on n'arrive plus ici : sans-guide-mobile.js (voir Dockerfile) évite ce détour,
+	# qui faisait perdre le jeton au retour de la connexion (boucle sur la page de connexion).
 	handle /mobile_guide* {
 		redir * /#/login 302
 	}

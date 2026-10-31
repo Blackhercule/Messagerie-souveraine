@@ -55,7 +55,9 @@ Les clés restent sur les appareils. **L'équipe n'écrit aucune cryptographie**
 
 ## 5. Niveau d'engagement open source : « Étendre et adapter »
 
-Nous ne modifions pas Synapse, Element ni Keycloak : nous les **configurons** pour la
+Nous ne modifions pas le code de Synapse, Element ni Keycloak (seul ajout : un script de
+quelques lignes, chargé avant Element Web, pour l'utiliser dans le navigateur des téléphones) :
+nous les **configurons** pour la
 souveraineté (pas de fédération ni de service tiers), nous **étendons** Synapse par son API
 officielle de modules, et nous publions tout notre travail sous AGPL-3.0.
 

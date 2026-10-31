@@ -85,7 +85,9 @@ appareils pendant une conversation de groupe, bouton d'urgence, protections de l
 | Docker Engine et Compose | Déploiement | Apache-2.0 |
 
 **Niveau d'engagement open source : « Étendre et adapter ».** Nous ne modifions pas le code de
-Synapse, d'Element ni de Keycloak : nous les configurons pour la souveraineté, nous **étendons**
+Synapse, d'Element ni de Keycloak (seul ajout : un script de quelques lignes, chargé avant
+Element Web, pour l'utiliser dans le navigateur des téléphones — `caddy/sans-guide-mobile.js`) :
+nous les configurons pour la souveraineté, nous **étendons**
 Synapse par son API officielle de modules et nous ajoutons une console qui pilote Keycloak et
 Synapse par leurs API d'administration.
 
