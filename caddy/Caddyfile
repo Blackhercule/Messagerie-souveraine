@@ -3,6 +3,10 @@
 {
 	local_certs
 	skip_install_trust
+	# Un navigateur qui ouvre https://<adresse IP> n'annonce aucun nom (SNI) ; dans Docker,
+	# Caddy ne voit que l'adresse interne du conteneur et ne saurait pas quel certificat
+	# présenter (ERR_SSL_PROTOCOL_ERROR). On lui indique celui de l'installation.
+	default_sni {$DOMAINE}
 }
 
 {$DOMAINE}:{$PORT_HTTPS} {
