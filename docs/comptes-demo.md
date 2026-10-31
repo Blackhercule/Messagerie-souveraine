@@ -44,10 +44,17 @@ sans réseau (norme ouverte TOTP, RFC 6238). Ou lancer
 
 ## Lancer les tests sur l'installation Docker
 
+Prérequis : Python 3.10 ou plus récent, et Node.js (pour le test de chiffrement réel).
+Les commandes fonctionnent dans Git Bash comme dans l'invite de commandes Windows.
+
 ```bash
 pip install -r tests/requirements.txt
 cd tests && python -m pytest -v
 ```
+
+Résultat vérifié sur Windows 10 avec Docker Desktop : **41 passed** en 1 min 30 environ.
+Juste après une installation, Keycloak et Synapse « démarrent à froid » : si le test de
+révocation dépasse sa limite de 5 secondes au tout premier lancement, relancer la série.
 
 Les tests créent des agents « Test … » dans l'annuaire. Pour une démonstration propre,
 lancez-les **avant** `./installer.sh --reinitialiser`, ou après la vidéo.
