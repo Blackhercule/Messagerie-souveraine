@@ -21,6 +21,13 @@ licence Apache-2.0) ou Aegis (Android, licence GPL-3.0). Le code est calculé su
 sans réseau (norme ouverte TOTP, RFC 6238). Ou lancer
 `python3 outils/code_totp.py awa.sawadogo`. Un même code ne peut servir qu'**une fois**.
 
+**Agent enrôlé pendant la démo** (console → Enrôler) : à sa première connexion, Keycloak affiche
+un QR code. Sans téléphone, cliquer sur « Impossible de scanner ? », puis donner au script la
+clé affichée, espaces compris : `python outils/code_totp.py KF2E KUDH OA4F …`. Taper le code
+obtenu ; « Nom de l'appareil » est facultatif. Keycloak demande ensuite le nouveau mot de passe.
+Ne pas ajouter cette clé dans le tableau `SECRETS_DEMO` du script : elle est déjà en Base32 et
+serait encodée une seconde fois (code refusé).
+
 ## Préparer la démonstration (10 minutes, la veille)
 
 1. `./installer.sh 192.168.x.x` (adresse IP du PC sur le Wi-Fi) ; installer `ca-messagerie.crt`

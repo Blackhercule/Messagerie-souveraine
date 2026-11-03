@@ -10,6 +10,14 @@
   </dl>
   <p class="message alerte">Ce mot de passe n'est affiché qu'une seule fois et n'est conservé nulle part.
     Remettez-le à l'agent en main propre, jamais par courriel.</p>
+  <h2>Première connexion de l'agent</h2>
+  <ol>
+    <li>Sur la messagerie, il saisit son identifiant et ce mot de passe provisoire.</li>
+    <li>Il scanne le QR code avec une application TOTP libre et hors ligne (FreeOTP, Aegis), puis tape le
+      code à 6 chiffres qu'elle affiche. Le champ « Nom de l'appareil » est facultatif
+      (par exemple : « Téléphone professionnel »).</li>
+    <li>Il choisit son propre mot de passe (12 caractères au moins).</li>
+  </ol>
   <p><a class="bouton" href="{{ url_for('console.agents') }}">Retour à la liste des agents</a></p>
 </section>
 {% endblock %}
