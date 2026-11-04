@@ -15,6 +15,7 @@ from .identite import Identite
 from .journal import Journal
 from .messagerie import Messagerie
 from .reglages import Reglages
+from .second_facteur import cle_base32, nouveau_secret
 
 
 class ErreurOperation(Exception):
@@ -84,18 +85,24 @@ class Operations:
     # ------------------------------------------------------------------ enrôlement
     def enroler(self, auteur: str, prenom: str, nom: str, ministere: str, fonction: str,
                 habilite: bool) -> tuple:
+        """Crée le compte avec un mot de passe provisoire ET son second facteur.
+
+        Renvoie (identifiant, mot de passe provisoire, clé TOTP) : les deux secrets ne sont affichés
+        qu'une fois, pour être remis à l'agent en main propre, et ne sont conservés nulle part ici."""
         identifiant = nom_utilisateur(prenom, nom)
         if self.identite.utilisateur(identifiant) is not None:
             raise ErreurOperation(f"Un compte « {identifiant} » existe déjà.")
         provisoire = mot_de_passe_provisoire()
+        secret = nouveau_secret()
         groupes = [self.r.groupe_agents] + ([self.r.groupe_habilites] if habilite else [])
         self.identite.creer(identifiant, prenom.strip(), nom.strip(),
                             {"ministere": [ministere.strip()], "fonction": [fonction.strip()]},
-                            provisoire, groupes)
+                            provisoire, groupes, secret)
         self.synchroniser_habilitations()
         self.journal.noter("enrolement", "info", auteur, identifiant,
-                           f"Agent enrôlé ({ministere.strip()})" + (" – habilité CONFIDENTIEL" if habilite else ""))
-        return identifiant, provisoire
+                           f"Agent enrôlé ({ministere.strip()}), second facteur remis"
+                           + (" – habilité CONFIDENTIEL" if habilite else ""))
+        return identifiant, provisoire, cle_base32(secret)
 
     # ------------------------------------------------------------------ révocation
     def revoquer(self, auteur: str, identifiant: str, motif: str) -> dict:
@@ -131,15 +138,17 @@ class Operations:
         # Fermer les sessions Keycloak déconnecte déjà la messagerie (déconnexion « back-channel ») ;
         # on supprime ensuite directement tout appareil restant, par sécurité.
         self.identite.fermer_sessions(u)
-        facteurs = self.identite.supprimer_second_facteur(u)
         provisoire = mot_de_passe_provisoire()
         self.identite.nouveau_mot_de_passe_provisoire(u, provisoire)
-        self.identite.modifier(u, requiredActions=["UPDATE_PASSWORD", "CONFIGURE_TOTP"])
+        # L'ancien second facteur (peut-être sur le téléphone volé) est remplacé par un nouveau,
+        # remis à l'agent avec le mot de passe provisoire.
+        secret = nouveau_secret()
+        facteurs = self.identite.remplacer_second_facteur(u, secret)
         self.messagerie.deconnecter_appareils(mxid)
         self.journal.noter("urgence", "critique", auteur, identifiant,
                            f"Bouton d'urgence : {appareils} appareil(s) déconnecté(s), "
-                           f"{facteurs} second facteur supprimé, nouveau mot de passe provisoire")
-        return appareils, provisoire
+                           f"{facteurs} second facteur remplacé, nouveau mot de passe provisoire")
+        return appareils, provisoire, cle_base32(secret)
 
     # ------------------------------------------------------------------ habilitations
     def habiliter(self, auteur: str, identifiant: str, habilite: bool) -> None:

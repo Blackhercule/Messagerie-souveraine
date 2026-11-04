@@ -105,25 +105,37 @@ for _ in $(seq 1 120); do
   echo -n "."; sleep 5
 done
 
-if [ -n "$CHANGEMENT_ADRESSE" ]; then
-  # Keycloak a enregistré dans sa base, à la première installation, les adresses vers lesquelles
-  # il a le droit de renvoyer un agent après sa connexion. On les remplace par la nouvelle :
-  # l'ancienne est refusée (protection contre les redirections détournées).
-  echo "Mise à jour des adresses autorisées dans Keycloak…"
-  kcadm() {
-    docker compose exec -T -e KC_CLI_PASSWORD="$MOT_DE_PASSE_ADMIN_KEYCLOAK" keycloak \
-      /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config
-  }
-  kcadm config credentials --server http://localhost:8080/auth --realm master --user admin >/dev/null 2>&1 \
-    || { echo "Connexion à l'administration de Keycloak impossible (mot de passe dans .env ?)."; exit 1; }
-  id_synapse=$(kcadm get clients -r administration -q clientId=synapse --fields id --format csv --noquotes | tr -d '\r')
-  id_console=$(kcadm get clients -r administration -q clientId=console-securite --fields id --format csv --noquotes | tr -d '\r')
-  kcadm update "clients/$id_synapse" -r administration \
-    -s "redirectUris=[\"$ADRESSE_PUBLIQUE/_synapse/client/oidc/callback\"]" -s "webOrigins=[\"$ADRESSE_PUBLIQUE\"]"
-  kcadm update "clients/$id_console" -r administration \
-    -s "redirectUris=[\"$ADRESSE_PUBLIQUE/console/connexion/retour\"]" -s "webOrigins=[\"$ADRESSE_PUBLIQUE\"]" \
-    -s "attributes.\"post.logout.redirect.uris\"=$ADRESSE_PUBLIQUE/console/"
-  echo "Adresse changée. Sur chaque appareil, ouvrez la nouvelle adresse et reconnectez-vous."
+# Réglages de Keycloak appliqués à CHAQUE installation (sans rien effacer) : ils corrigent aussi
+# les installations plus anciennes, dont le royaume a été importé avant ces règles.
+kcadm() {
+  docker compose exec -T -e KC_CLI_PASSWORD="$MOT_DE_PASSE_ADMIN_KEYCLOAK" keycloak \
+    /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config
+}
+if kcadm config credentials --server http://localhost:8080/auth --realm master --user admin >/dev/null 2>&1; then
+  # Un agent ne gère pas lui-même ses identifiants (page « Mon compte ») : il ne peut donc pas
+  # retirer son second facteur pour se connecter avec son seul mot de passe.
+  kcadm remove-roles -r administration --rname default-roles-administration \
+    --cclientid account --rolename manage-account >/dev/null 2>&1 || true
+
+  if [ -n "$CHANGEMENT_ADRESSE" ]; then
+    # Keycloak a enregistré dans sa base, à la première installation, les adresses vers lesquelles
+    # il a le droit de renvoyer un agent après sa connexion. On les remplace par la nouvelle :
+    # l'ancienne est refusée (protection contre les redirections détournées).
+    echo "Mise à jour des adresses autorisées dans Keycloak…"
+    id_synapse=$(kcadm get clients -r administration -q clientId=synapse --fields id --format csv --noquotes | tr -d '\r')
+    id_console=$(kcadm get clients -r administration -q clientId=console-securite --fields id --format csv --noquotes | tr -d '\r')
+    kcadm update "clients/$id_synapse" -r administration \
+      -s "redirectUris=[\"$ADRESSE_PUBLIQUE/_synapse/client/oidc/callback\"]" -s "webOrigins=[\"$ADRESSE_PUBLIQUE\"]"
+    kcadm update "clients/$id_console" -r administration \
+      -s "redirectUris=[\"$ADRESSE_PUBLIQUE/console/connexion/retour\"]" -s "webOrigins=[\"$ADRESSE_PUBLIQUE\"]" \
+      -s "attributes.\"post.logout.redirect.uris\"=$ADRESSE_PUBLIQUE/console/"
+    echo "Adresse changée. Sur chaque appareil, ouvrez la nouvelle adresse et reconnectez-vous."
+  fi
+elif [ -n "$CHANGEMENT_ADRESSE" ]; then
+  echo "Connexion à l'administration de Keycloak impossible (mot de passe dans .env ?)."
+  exit 1
+else
+  echo "Attention : réglages de sécurité de Keycloak non appliqués (relancez ./installer.sh)."
 fi
 
 cat <<EOF

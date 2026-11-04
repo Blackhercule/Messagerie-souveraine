@@ -131,6 +131,10 @@ button.danger { background: var(--rouge); border-color: var(--rouge); }
 .identifiants dl { display: grid; grid-template-columns: max-content 1fr; gap: .6rem 1.2rem; }
 .identifiants dt { font-weight: 600; color: var(--gris); }
 .secret { font-size: 1.2rem; background: var(--encre); color: var(--or); padding: .2rem .6rem; border-radius: 4px; user-select: all; }
+.qr-totp { display: inline-block; background: #fff; padding: .4rem; border: 1px solid var(--trait); border-radius: var(--rayon); }
+.qr-totp svg { display: block; width: 220px; height: auto; }
+.identifiants dd .aide { margin: .6rem 0 .3rem; font-size: .9rem; }
+.cle-totp { font-size: 1.05rem; letter-spacing: .04em; word-spacing: .2em; }
 
 @media (max-width: 860px) {
   .colonnes, .tuiles { grid-template-columns: 1fr 1fr; }

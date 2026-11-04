@@ -12,26 +12,33 @@ import pytest
 from navigateur import ADRESSE, EchecConnexion, Navigateur
 
 
+def secrets_remis(page: str) -> tuple:
+    """Mot de passe provisoire et clé du second facteur affichés par la console (une seule fois)."""
+    provisoire = re.search(r'<code class="secret">([^<]+)</code>', page).group(1)
+    cle = re.search(r'<code class="secret cle-totp">([^<]+)</code>', page).group(1).replace(" ", "")
+    assert "<svg" in page, "le QR code du second facteur doit être affiché"
+    return provisoire, cle
+
+
 def enroler(console, prenom: str, nom: str) -> tuple:
     page = console.s.get(f"{ADRESSE}/console/agents/nouveau").text
     rep = console.poster_console("/console/agents/nouveau", page, {
         "prenom": prenom, "nom": nom, "ministere": "Ministère fictif des Tests", "fonction": "Agent de test"})
     assert rep.status_code == 200, rep.text[:500]
     identifiant = re.search(r"<dt>Identifiant</dt><dd><code>([^<]+)</code>", rep.text).group(1)
-    provisoire = re.search(r'<code class="secret">([^<]+)</code>', rep.text).group(1)
-    return identifiant, provisoire
+    provisoire, cle = secrets_remis(rep.text)
+    return identifiant, provisoire, cle
 
 
 def agent_avec_deux_appareils(console, nom_famille: str):
-    """Enrôle un agent, fait sa première connexion (mot de passe + TOTP), puis un 2ᵉ appareil."""
-    identifiant, provisoire = enroler(console, "Test", nom_famille)
+    """Enrôle un agent, fait sa première connexion (code TOTP + nouveau mot de passe), puis un 2ᵉ appareil."""
+    identifiant, provisoire, cle = enroler(console, "Test", nom_famille)
     premier = Navigateur()
-    telephone = premier.connexion_matrix(identifiant, provisoire)  # première connexion guidée
-    assert premier.nouveau_mot_de_passe and premier.nouvelle_cle_totp
-    ordinateur = Navigateur().connexion_matrix(identifiant, premier.nouveau_mot_de_passe,
-                                               premier.nouvelle_cle_totp)
+    telephone = premier.connexion_matrix(identifiant, provisoire, cle)  # première connexion guidée
+    assert premier.nouveau_mot_de_passe
+    ordinateur = Navigateur().connexion_matrix(identifiant, premier.nouveau_mot_de_passe, cle)
     assert telephone.appareil != ordinateur.appareil
-    return identifiant, premier.nouveau_mot_de_passe, premier.nouvelle_cle_totp, telephone, ordinateur
+    return identifiant, premier.nouveau_mot_de_passe, cle, telephone, ordinateur
 
 
 def jeton_valide(client) -> bool:
@@ -43,14 +50,18 @@ def jeton_valide(client) -> bool:
 
 
 def test_premiere_connexion_impose_mot_de_passe_et_second_facteur(console):
-    identifiant, provisoire = enroler(console, "Test", f"Enrolement{int(time.time())}")
+    identifiant, provisoire, cle = enroler(console, "Test", f"Enrolement{int(time.time())}")
+    # Dès la première connexion, le mot de passe provisoire ne suffit pas : le code est exigé.
+    with pytest.raises(EchecConnexion) as e:
+        Navigateur().connexion_matrix(identifiant, provisoire, code_force="000000")
+    assert e.value.etape == "code TOTP refusé"
+    # Avec le second facteur remis à l'enrôlement, Keycloak impose ensuite un nouveau mot de passe.
     n = Navigateur()
-    n.connexion_matrix(identifiant, provisoire)
+    n.connexion_matrix(identifiant, provisoire, cle)
     assert n.nouveau_mot_de_passe, "Keycloak doit imposer un nouveau mot de passe"
-    assert n.nouvelle_cle_totp, "Keycloak doit imposer l'enregistrement d'un second facteur"
     # Le mot de passe provisoire ne fonctionne plus.
     with pytest.raises(EchecConnexion):
-        Navigateur().connexion_matrix(identifiant, provisoire)
+        Navigateur().connexion_matrix(identifiant, provisoire, cle)
 
 
 def test_revocation_immediate_sur_tous_les_appareils(console, awa):
@@ -89,14 +100,15 @@ def test_bouton_urgence_telephone_perdu(console):
     rep = console.poster_console(f"/console/agents/{identifiant}/urgence", page, {})
     assert rep.status_code == 200 and "Appareils coupés" in rep.text
     assert "2 appareil(s) déconnecté(s)" in rep.text
-    nouveau_provisoire = re.search(r'<code class="secret">([^<]+)</code>', rep.text).group(1)
+    nouveau_provisoire, nouvelle_cle = secrets_remis(rep.text)
+    assert nouvelle_cle != cle
 
     assert not jeton_valide(telephone) and not jeton_valide(ordinateur)
     # L'ancien mot de passe et l'ancien second facteur (peut-être sur le téléphone volé) ne servent plus.
     with pytest.raises(EchecConnexion):
         Navigateur().connexion_matrix(identifiant, mot_de_passe, cle)
-    # L'agent se réenrôle avec le mot de passe provisoire remis en main propre : même compte.
+    # L'agent se réenrôle avec le mot de passe provisoire et le nouveau QR code remis en main propre.
     n = Navigateur()
-    nouveau_telephone = n.connexion_matrix(identifiant, nouveau_provisoire)
-    assert n.nouvelle_cle_totp and n.nouvelle_cle_totp != cle
+    nouveau_telephone = n.connexion_matrix(identifiant, nouveau_provisoire, nouvelle_cle)
+    assert n.nouveau_mot_de_passe
     assert nouveau_telephone.identifiant == telephone.identifiant

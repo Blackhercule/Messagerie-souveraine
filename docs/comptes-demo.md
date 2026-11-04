@@ -21,12 +21,22 @@ licence Apache-2.0) ou Aegis (Android, licence GPL-3.0). Le code est calculé su
 sans réseau (norme ouverte TOTP, RFC 6238). Ou lancer
 `python3 outils/code_totp.py awa.sawadogo`. Un même code ne peut servir qu'**une fois**.
 
-**Agent enrôlé pendant la démo** (console → Enrôler) : à sa première connexion, Keycloak affiche
-un QR code. Sans téléphone, cliquer sur « Impossible de scanner ? », puis donner au script la
-clé affichée, espaces compris : `python outils/code_totp.py KF2E KUDH OA4F …`. Taper le code
-obtenu ; « Nom de l'appareil » est facultatif. Keycloak demande ensuite le nouveau mot de passe.
-Ne pas ajouter cette clé dans le tableau `SECRETS_DEMO` du script : elle est déjà en Base32 et
-serait encodée une seconde fois (code refusé).
+**Agent enrôlé pendant la démo** (console → Enrôler) : la console crée le compte AVEC son second
+facteur et affiche, une seule fois, le mot de passe provisoire, un QR code et la clé correspondante.
+- Membre du jury avec un téléphone : il scanne le QR code avec son application TOTP, puis se connecte.
+- Sans téléphone : enregistrer la clé affichée dans le script, une fois pour toutes, puis demander
+  le code à chaque connexion :
+
+```bash
+python outils/code_totp.py --enregistrer fatima.kabore KF2E KUDH OA4F ...   # clé affichée par la console
+python outils/code_totp.py fatima.kabore                                     # code du moment
+python outils/code_totp.py --liste                                           # agents connus du script
+```
+
+Les clés enregistrées restent sur ce PC (`outils/cles-demo.local.json`, ignoré par Git) : à supprimer
+après la démo. Dans un vrai déploiement, la clé n'existe que dans Keycloak et dans le téléphone de
+l'agent. Le bouton « Téléphone perdu » remet de la même façon un nouveau QR code (l'ancien est
+inutilisable) : enregistrer la nouvelle clé avec `--enregistrer`.
 
 ## Préparer la démonstration (10 minutes, la veille)
 

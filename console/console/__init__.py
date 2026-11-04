@@ -13,12 +13,14 @@ from datetime import timedelta
 
 from authlib.integrations.flask_client import OAuth
 from flask import Blueprint, Flask, abort, flash, redirect, render_template, request, session, url_for
+from markupsafe import Markup
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .identite import ErreurIdentite
 from .messagerie import ErreurMessagerie
 from .operations import ErreurOperation, Operations
 from .reglages import Reglages
+from .second_facteur import cle_lisible, lien_otpauth, qr_svg
 
 vues = Blueprint("console", __name__, url_prefix="/console", static_folder="static", static_url_path="/static")
 oauth = OAuth()
@@ -174,15 +176,22 @@ def enroler():
         return render_template("enroler.html")
     f = request.form
     try:
-        identifiant, provisoire = ops().enroler(session["admin"]["nom"], f.get("prenom", ""), f.get("nom", ""),
-                                                f.get("ministere", ""), f.get("fonction", ""),
-                                                f.get("habilite") == "oui")
+        identifiant, provisoire, cle = ops().enroler(session["admin"]["nom"], f.get("prenom", ""),
+                                                     f.get("nom", ""), f.get("ministere", ""),
+                                                     f.get("fonction", ""), f.get("habilite") == "oui")
     except (ErreurOperation, ErreurIdentite) as e:
         flash(str(e), "erreur")
         return render_template("enroler.html", formulaire=f), 400
-    return render_template("identifiants.html", titre="Agent enrôlé", identifiant=identifiant,
-                           provisoire=provisoire, explication="À la première connexion, l'agent choisit son "
-                           "mot de passe et enregistre son second facteur (application TOTP).")
+    return page_identifiants("Agent enrôlé", identifiant, provisoire, cle,
+                             "Remettez ces deux éléments à l'agent en main propre. Il enregistre d'abord son "
+                             "second facteur dans son application, devant vous.")
+
+
+def page_identifiants(titre, identifiant, provisoire, cle, explication):
+    """Mot de passe provisoire + second facteur : affichés une seule fois, conservés nulle part."""
+    return render_template("identifiants.html", titre=titre, identifiant=identifiant, provisoire=provisoire,
+                           cle=cle_lisible(cle), qr=Markup(qr_svg(lien_otpauth(identifiant, cle))),
+                           explication=explication)
 
 
 @vues.route("/agents/<identifiant>/revoquer", methods=["POST"])
@@ -201,14 +210,14 @@ def revoquer(identifiant):
 @administrateur_requis
 def urgence(identifiant):
     try:
-        appareils, provisoire = ops().urgence(session["admin"]["nom"], identifiant)
+        appareils, provisoire, cle = ops().urgence(session["admin"]["nom"], identifiant)
     except (ErreurOperation, ErreurIdentite, ErreurMessagerie) as e:
         flash(f"Échec : {e}", "erreur")
         return redirect(url_for("console.agents"))
-    return render_template("identifiants.html", titre="Appareils coupés", identifiant=identifiant,
-                           provisoire=provisoire, explication=f"{appareils} appareil(s) déconnecté(s) et second "
-                           "facteur supprimé. Remettez ce mot de passe provisoire à l'agent en main propre : "
-                           "il réenregistrera son second facteur sur son nouveau téléphone.")
+    return page_identifiants("Appareils coupés", identifiant, provisoire, cle,
+                             f"{appareils} appareil(s) déconnecté(s). L'ancien second facteur ne fonctionne plus : "
+                             "remettez à l'agent ce nouveau mot de passe provisoire et ce nouveau QR code, à "
+                             "enregistrer sur son nouveau téléphone.")
 
 
 @vues.route("/agents/<identifiant>/habilitation", methods=["POST"])

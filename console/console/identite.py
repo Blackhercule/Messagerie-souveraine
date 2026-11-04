@@ -4,6 +4,7 @@ La console s'authentifie avec son propre compte de service (« client credential
 qui n'a que les droits nécessaires : gérer les utilisateurs et lire les événements.
 """
 
+import json
 import time
 
 import requests
@@ -61,8 +62,19 @@ class Identite:
             raise ErreurIdentite(f"Agent inconnu : {nom}")
         return u
 
+    @staticmethod
+    def _second_facteur(secret_totp: str) -> dict:
+        """Second facteur TOTP prêt à l'emploi (réglages du royaume : SHA-1, 6 chiffres, 30 s)."""
+        return {
+            "type": "otp",
+            "userLabel": "Remis à l'enrôlement",
+            "secretData": json.dumps({"value": secret_totp}),
+            "credentialData": json.dumps({"subType": "totp", "digits": 6, "counter": 0, "period": 30,
+                                          "algorithm": "HmacSHA1"}),
+        }
+
     def creer(self, nom: str, prenom: str, nom_famille: str, attributs: dict, mot_de_passe_provisoire: str,
-              groupes: list) -> None:
+              groupes: list, secret_totp: str) -> None:
         self._appel("POST", "/users", json={
             "username": nom,
             "firstName": prenom,
@@ -70,9 +82,11 @@ class Identite:
             "enabled": True,
             "attributes": attributs,
             "groups": [f"/{g}" for g in groupes],
-            # À la première connexion : choisir son mot de passe ET enregistrer son second facteur.
-            "requiredActions": ["UPDATE_PASSWORD", "CONFIGURE_TOTP"],
-            "credentials": [{"type": "password", "value": mot_de_passe_provisoire, "temporary": True}],
+            # Le second facteur est remis dès l'enrôlement (QR code) : à la première connexion,
+            # le code est donc exigé, puis l'agent choisit son propre mot de passe.
+            "requiredActions": ["UPDATE_PASSWORD"],
+            "credentials": [{"type": "password", "value": mot_de_passe_provisoire, "temporary": True},
+                            self._second_facteur(secret_totp)],
         })
 
     def modifier(self, utilisateur: dict, **champs) -> None:
@@ -90,6 +104,14 @@ class Identite:
         for c in otp:
             self._appel("DELETE", f"/users/{utilisateur['id']}/credentials/{c['id']}")
         return len(otp)
+
+    def remplacer_second_facteur(self, utilisateur: dict, secret_totp: str) -> int:
+        """Supprime tout second facteur existant (téléphone perdu) et en installe un nouveau."""
+        supprimes = self.supprimer_second_facteur(utilisateur)
+        self.modifier(utilisateur, credentials=[self._second_facteur(secret_totp)], requiredActions=["UPDATE_PASSWORD"])
+        if not self.a_un_second_facteur(utilisateur):
+            raise ErreurIdentite("Keycloak n'a pas enregistré le nouveau second facteur")
+        return supprimes
 
     def a_un_second_facteur(self, utilisateur: dict) -> bool:
         identifiants = self._appel("GET", f"/users/{utilisateur['id']}/credentials") or []

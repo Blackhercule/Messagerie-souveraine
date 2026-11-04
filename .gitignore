@@ -1,6 +1,8 @@
 # Secrets et certificats propres à chaque installation : jamais dans le dépôt.
 .env
 ca-messagerie.crt
+# Clés TOTP des agents enrôlés pendant une démo (outils/code_totp.py --enregistrer).
+outils/cles-demo.local.json
 
 # Python
 __pycache__/

@@ -7,15 +7,22 @@
   <dl>
     <dt>Identifiant</dt><dd><code>{{ identifiant }}</code></dd>
     <dt>Mot de passe provisoire</dt><dd><code class="secret">{{ provisoire }}</code></dd>
+    <dt>Second facteur</dt>
+    <dd>
+      <div class="qr-totp">{{ qr }}</div>
+      <p class="aide">Clé à saisir à la main si le QR code ne peut pas être scanné :</p>
+      <code class="secret cle-totp">{{ cle }}</code>
+    </dd>
   </dl>
-  <p class="message alerte">Ce mot de passe n'est affiché qu'une seule fois et n'est conservé nulle part.
-    Remettez-le à l'agent en main propre, jamais par courriel.</p>
+  <p class="message alerte">Le mot de passe et le second facteur ne sont affichés qu'une seule fois et ne sont
+    conservés nulle part par la console. Remettez-les à l'agent en main propre, jamais par courriel ni par
+    message. Cette page ne doit pas être photographiée.</p>
   <h2>Première connexion de l'agent</h2>
   <ol>
-    <li>Sur la messagerie, il saisit son identifiant et ce mot de passe provisoire.</li>
-    <li>Il scanne le QR code avec une application TOTP libre et hors ligne (FreeOTP, Aegis), puis tape le
-      code à 6 chiffres qu'elle affiche. Le champ « Nom de l'appareil » est facultatif
-      (par exemple : « Téléphone professionnel »).</li>
+    <li>Devant vous, il ouvre une application TOTP libre et hors ligne (FreeOTP, Aegis) et scanne ce QR code,
+      ou y saisit la clé à la main.</li>
+    <li>Sur la messagerie, il saisit son identifiant et le mot de passe provisoire, puis le code à 6 chiffres
+      affiché par son application.</li>
     <li>Il choisit son propre mot de passe (12 caractères au moins).</li>
   </ol>
   <p><a class="bouton" href="{{ url_for('console.agents') }}">Retour à la liste des agents</a></p>
